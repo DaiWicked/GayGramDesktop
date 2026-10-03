@@ -85,7 +85,7 @@ QPointer<QNetworkReply> GoogleTranslator::startSingleTranslation(
 		return nullptr;
 	}
 
-	if (QStringLiteral(kGoogleDefaultApiKey).isEmpty()) {
+	if (kGoogleDefaultApiKey[0] == '\0') {
 		if (onFail) onFail();
 		return nullptr;
 	}
