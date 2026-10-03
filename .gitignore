@@ -95,3 +95,6 @@ setup_guid.txt
 # AI review reports (may contain API credentials)
 deepseek_review_*.md
 code_review_report.md
+
+# Project discussion folder (local only, not for version control)
+项目交流/
