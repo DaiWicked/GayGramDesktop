@@ -132,7 +132,7 @@ cancelIconFg: menuIconFg; // default for settings close icon and box search canc
 cancelIconFgOver: menuIconFgOver; // default for settings close icon and box search cancel icon with mouse over
 
 // boxes
-boxBg: windowBg; // box background
+boxBg: #fffffff5; // box background (semi-transparent for liquid glass P0)
 boxTextFg: windowFg; // box text
 boxTextFgGood: #4ab44a; // accepted box text (like when choosing username that is not occupied)
 boxTextFgError: #d84d4d; // rejecting box text (like when choosing username that is occupied)
