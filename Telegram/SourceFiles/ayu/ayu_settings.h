@@ -624,8 +624,8 @@ private:
 
 	[[nodiscard]] uint64 getOverriddenGhostUserId(uint64 userId) const { return _useGlobalGhostMode.current() ? 0 : userId; }
 
-	rpl::variable<bool> _saveDeletedMessages = true;
-	rpl::variable<bool> _saveMessagesHistory = true;
+	rpl::variable<bool> _saveDeletedMessages = false;
+	rpl::variable<bool> _saveMessagesHistory = false;
 	rpl::variable<bool> _saveForBots = false;
 	std::unordered_set<int64> _shadowBanIds;
 	rpl::variable<bool> _filtersEnabled = false;
