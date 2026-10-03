@@ -805,7 +805,6 @@ void LastCrashedWindow::updateControls() {
 		}
 	} else {
 		h += _networkSettings.height() + padding;
-		h += padding + _send.height() + padding;
 		if (_sendingState == SendingNoReport) {
 			_pleaseSendReport.hide();
 			_yourReportName.hide();
