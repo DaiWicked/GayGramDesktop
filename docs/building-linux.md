@@ -20,8 +20,8 @@ Go to ***BuildPath*/tdesktop** and run
         -v "$PWD:/usr/src/tdesktop" \
         ghcr.io/telegramdesktop/tdesktop/centos_env:latest \
         /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
-        -D TDESKTOP_API_ID=2040 \
-        -D TDESKTOP_API_HASH=b18441a1ff607e10a989891a5462e627
+        -D TDESKTOP_API_ID=YOUR_API_ID \
+        -D TDESKTOP_API_HASH=YOUR_API_HASH
 
 Or, to create a debug build, run
 
@@ -31,8 +31,8 @@ Or, to create a debug build, run
         -e CONFIG=Debug \
         ghcr.io/telegramdesktop/tdesktop/centos_env:latest \
         /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
-        -D TDESKTOP_API_ID=2040 \
-        -D TDESKTOP_API_HASH=b18441a1ff607e10a989891a5462e627
+        -D TDESKTOP_API_ID=YOUR_API_ID \
+        -D TDESKTOP_API_HASH=YOUR_API_HASH
 
 The built files will be in the `out` directory.
 

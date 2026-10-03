@@ -1,8 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Platform-wide issue
-    url: https://bugs.telegram.org
-    about: Any bug report or feature request affecting more than only Telegram Desktop.
-  - name: Issue of other client
-    url: https://bugs.telegram.org
-    about: Any bug report or feature request not about Telegram Desktop.
+  - name: GayGram Desktop Issues
+    url: https://github.com/DaiWicked/GayGramDesktop/issues
+    about: Bug reports and feature requests for GayGram Desktop.

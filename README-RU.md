@@ -1,140 +1,53 @@
-# AyuGram
+# GayGram Desktop
 
-![AyuGram Лого](.github/AyuGram.png) ![AyuChan](.github/AyuChan.png)
+![GayGram Logo](.github/GayGram.png)
 
-[ [English](README.md)  | Русский ]
+[ [English](README.md) | [简体中文](README-ZH.md) | Русский ]
 
-## Функции и Фишки
+*Близкий друг вдали делает далёкий край близким.*
+
+**GayGram Desktop** — сторонний клиент Telegram для Windows, форк
+[AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop) на основе
+[Telegram Desktop](https://github.com/telegramdesktop/tdesktop) 7.0.9.
+
+GayGram Desktop не связан с Telegram Messenger LLP или проектом AyuGram.
+
+## Возможности
 
 - Полный режим призрака (настраиваемый)
-- История удалений и изменений сообщений
+- История удалённых и изменённых сообщений
+- Анти-отзыв
 - Кастомизация шрифта
-- Режим Стримера
-- Локальный телеграм премиум
+- Режим стримера
+- Локальный Telegram Premium
 - Переводчик
-- Превью медиа и быстрая реакция при сильном нажатии на тачпад (macOS)
-- Улучшенный вид
+- Улучшенный внешний вид
 
-И многое другое. Посмотрите нашу [Документацию](https://docs.ayugram.one/desktop/) для более подробной информации.
-
-<h3>
-  <details>
-    <summary>Превью</summary>
-    <table>
-      <tr>
-        <td><img src='.github/demos/demo1.png' width='268' alt='Preferences'></td>
-        <td><img src='.github/demos/demo2.png' width='268' alt='AyuGram Options'></td>
-        <td><img src='.github/demos/demo3.png' width='268' alt='Message Filters'></td>
-      </tr>
-      <tr>
-        <td><img src='.github/demos/demo4.png' width='268' alt='Appearance'></td>
-        <td><img src='.github/demos/demo5.png' width='268' alt='Chats'></td>
-      </tr>
-    </table>
-  </details>
-</h3>
-
-## Установка
+## Загрузки
 
 ### Windows
 
-#### Официальная версия
+Готовый бинарник для Windows можно скачать со вкладки
+[Releases](https://github.com/DaiWicked/GayGramDesktop/releases).
 
-Вы можете скачать готовый бинарный файл со вкладки [Releases](https://github.com/AyuGram/AyuGramDesktop/releases) или из
-[Телеграм канала](https://t.me/AyuGramReleases).
+### Самостоятельная сборка
 
-#### Winget
+Следуйте [этому руководству](docs/building-win.md), если хотите собрать самостоятельно.
 
-```bash
-winget install RadolynLabs.AyuGramDesktop
-```
+## Лицензия
 
-#### Scoop
+GayGram Desktop распространяется под GNU GPL v3 со специальным исключением,
+указанным в файле [LICENSE](LICENSE).
 
-```bash
-scoop bucket add extras
-scoop install ayugram
-```
+## Благодарности
 
-#### Сборка вручную
+### Апстрим
 
-Следуйте [официальному руководству](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-win-x64.md), если
-вы хотите собрать AyuGram сами.
-
-### macOS
-
-#### Официальная версия
-
-Вы можете скачать подписанный пакет со вкладки [Releases](https://github.com/AyuGram/AyuGramDesktop/releases).
-
-#### Homebrew
-
-```bash
-brew install --cask ayugram
-```
-
-### Arch Linux
-
-#### Из исходников (рекомендованный способ)
-
-Установите `ayugram-desktop` из [AUR](https://aur.archlinux.org/packages/ayugram-desktop).
-
-#### Готовые бинарники
-
-Установите `ayugram-desktop-bin` из [AUR](https://aur.archlinux.org/packages/ayugram-desktop-bin).
-
-Примечание: данный пакет собирается не нами.
-
-### NixOS
-
-#### Флейк (рекомендуется)
-
-Установите `ayugram-desktop` из [ndfined-crp/ayugram-desktop](https://github.com/ndfined-crp/ayugram-desktop)
-
-#### Nixpkgs
-
-Установите `ayugram-desktop` из [nixpkgs](https://search.nixos.org/packages?channel=unstable&show=ayugram-desktop)
-
-### ALT Linux
-
-[Sisyphus](https://packages.altlinux.org/en/sisyphus/srpms/ayugram-desktop/)
-
-### Gentoo Linux
-
-Инструкцию по установке можно найти в [этом репозитории](https://codeberg.org/OverLessArtem/ayugram-ebuild-gentoo).
-
-### Void Linux
-Инструкцию по установке можно найти в [этом репозитории](https://codeberg.org/OverLessArtem/ayugram-template-void)
-
-### EPM
-
-`epm play ayugram`
-
-### Fedora
-
-Из репозитория [RPM Fusion](https://admin.rpmfusion.org/pkgdb/package/free/ayugram-desktop/).
-
-```bash
-dnf install ayugram-desktop
-```
-
-### Любой другой Линукс дистрибутив
-
-Flatpak: https://github.com/0FL01/AyuGramDesktop-flatpak
-
-Или следуйте [официальному руководству](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-linux.md).
-
-## Пожертвования
-
-Вам нравится использовать **AyuGram**? Оставьте нам чаевые!
-
-[Здесь доступные варианты.](https://docs.ayugram.one/donate/)
-
-## Использованные материалы
-
-### Телеграм клиенты
-
+- [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop) — проект, на основе которого сделан этот форк
 - [Telegram Desktop](https://github.com/telegramdesktop/tdesktop)
+
+### Клиенты Telegram
+
 - [Kotatogram](https://github.com/kotatogram/kotatogram-desktop)
 - [64Gram](https://github.com/TDesktop-x64/tdesktop)
 - [Forkgram](https://github.com/forkgram/tdesktop)
@@ -144,11 +57,3 @@ Flatpak: https://github.com/0FL01/AyuGramDesktop-flatpak
 - [JSON for Modern C++](https://github.com/nlohmann/json)
 - [SQLite](https://github.com/sqlite/sqlite)
 - [sqlite_orm](https://github.com/fnc12/sqlite_orm)
-
-### Иконки
-
-- [Solar Icon Set](https://www.figma.com/community/file/1166831539721848736)
-
-### Боты
-
-- [TelegramDB](https://t.me/tgdatabase) для получения юзернейма по ID (до закрытия бесплатной версии 2 апреля 2026)

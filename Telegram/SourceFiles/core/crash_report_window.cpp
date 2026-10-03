@@ -472,7 +472,7 @@ LastCrashedWindow::LastCrashedWindow(
 		}
 	}
 
-	_pleaseSendReport.setText(u"Please send us a crash report."_q);
+	_pleaseSendReport.setText(u"Crash reporting is disabled. You can save the report manually."_q);
 	_yourReportName.setText(u"Crash ID: %1"_q.arg(QString(_minidumpName).replace(".dmp", "")));
 	_yourReportName.setCursor(style::cur_text);
 	_yourReportName.setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -852,26 +852,11 @@ void LastCrashedWindow::updateControls() {
 					_showReport.show();
 				}
 			}
-			if (_sendingState == SendingDone) {
-				_send.hide();
+			_send.hide();
 				_sendSkip.hide();
 				_continue.show();
 				_networkSettings.hide();
-			} else {
-				if (_sendingState == SendingProgress || _sendingState == SendingUploading) {
-					_send.hide();
-				} else {
-					_send.show();
-				}
-				_sendSkip.show();
-				if (_sendingState == SendingFail) {
-					_networkSettings.show();
-				} else {
-					_networkSettings.hide();
-				}
-				_continue.hide();
 			}
-		}
 
 		_getApp.show();
 		h += _networkSettings.height() + padding;

@@ -44,18 +44,18 @@ Run both `Clone source code and prepare libraries` and `Build the project` secti
 
 In the initialized terminal, go to ***BuildPath*** and run
 
-    git clone --recursive https://github.com/AyuGram/AyuGramDesktop.git tdesktop
+    git clone --recursive https://github.com/DaiWicked/GayGramDesktop.git tdesktop
     tdesktop\Telegram\build\prepare\win.bat
 
 ## Build the project
 
 Go to ***BuildPath*\\tdesktop\\Telegram** and run
 
-    configure.bat x64 -D TDESKTOP_API_ID=2040 -D TDESKTOP_API_HASH=b18441a1ff607e10a989891a5462e627
+    configure.bat x64 -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH
 
 * Open ***BuildPath*\\tdesktop\\out\\Telegram.slnx** in Visual Studio 2026
 * Select Telegram project and press Build > Build Telegram (Debug and Release configurations)
-* The result AyuGram.exe will be located in **D:\TBuild\tdesktop\out\Debug** (and **Release**)
+* The result GayGram.exe will be located in **D:\TBuild\tdesktop\out\Debug** (and **Release**)
 
 ## Troubleshooting
 

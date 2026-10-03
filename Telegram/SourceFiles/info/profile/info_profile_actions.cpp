@@ -1419,7 +1419,11 @@ void AddRegistrationOrCreationButton(
 		getRegistrationDate(
 			peer,
 			[=](const TextWithEntities &result) {
-				if (result.empty() || !weak) {
+				if (!weak) {
+					return;
+				}
+				if (result.empty()) {
+					Ui::Toast::Show(u"Registration date is unavailable."_q);
 					return;
 				}
 				const auto parent = weak->window();
