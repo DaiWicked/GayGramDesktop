@@ -27,7 +27,7 @@ namespace {
 
 constexpr auto kGoogleTranslateUrl = "https://translate-pa.googleapis.com/v1/translateHtml";
 constexpr auto kGoogleContentType = "application/json+protobuf";
-constexpr auto kGoogleDefaultApiKey = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520";
+constexpr auto kGoogleDefaultApiKey = "";
 
 QString decodeHtmlEntities(const QString &text) {
 	QTextDocument doc;
@@ -81,6 +81,11 @@ QPointer<QNetworkReply> GoogleTranslator::startSingleTranslation(
 	const auto onFail = args.onFail;
 
 	if (text.empty() || toLang.isEmpty()) {
+		if (onFail) onFail();
+		return nullptr;
+	}
+
+	if (QStringLiteral(kGoogleDefaultApiKey).isEmpty()) {
 		if (onFail) onFail();
 		return nullptr;
 	}
