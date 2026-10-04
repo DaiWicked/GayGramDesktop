@@ -395,6 +395,14 @@ void AyuSettings::load() {
 			LOG(("AyuGramSettings: migrated ghost mode settings to per-account format"));
 		}
 
+		if (!p.contains("privacyDefaultsMigrated")) {
+			p["saveDeletedMessages"] = false;
+			p["saveMessagesHistory"] = false;
+			p["privacyDefaultsMigrated"] = true;
+
+			LOG(("AyuGramSettings: migrated privacy defaults to disabled"));
+		}
+
 		try {
 			from_json(p, settings);
 		} catch (...) {
@@ -1165,7 +1173,8 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"avatarCorners", s._avatarCorners.current()},
 		{"singleCornerRadius", s._singleCornerRadius.current()},
 		{"streamerMode", s._streamerMode.current()},
-		{"messageShotSettings", s._messageShotSettings}
+		{"messageShotSettings", s._messageShotSettings},
+		{"privacyDefaultsMigrated", true}
 	};
 }
 
