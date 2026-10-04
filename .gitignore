@@ -98,3 +98,9 @@ code_review_report.md
 
 # Project discussion folder (local only, not for version control)
 项目交流/
+
+# Theme build temp directories
+theme_build/
+theme_build2/
+theme_p1_fix/
+theme_fix_sidebar/
