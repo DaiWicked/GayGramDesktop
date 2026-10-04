@@ -218,6 +218,7 @@ private:
 
 	RoundButtonTextTransform _transform = RoundButtonTextTransform::NoTransform;
 	bool _fullRadius = false;
+	bool _activeGradient = false;
 	std::optional<std::array<int, 4>> _cornerRadii;
 
 };

@@ -313,16 +313,7 @@ RoundButton::RoundButton(
 	}, lifetime());
 
 	if (_st.textBg == st::activeButtonBg) {
-		const auto base = _st.textBg->c;
-		auto lighter = base;
-		lighter = lighter.lighter(115);
-		auto darker = base;
-		darker = darker.darker(115);
-		QLinearGradient gradient(0, 0, 0, 1);
-		gradient.setCoordinateMode(QGradient::ObjectBoundingMode);
-		gradient.setColorAt(0, lighter);
-		gradient.setColorAt(1, darker);
-		setBrushOverride(QBrush(gradient));
+		_activeGradient = true;
 	}
 }
 
@@ -496,50 +487,58 @@ void RoundButton::paintEvent(QPaintEvent *e) {
 	if (_fullWidthOverride < 0) {
 		rounded = QRect(0, rounded.top(), innerWidth - _fullWidthOverride, rounded.height());
 	}
-	const auto drawRect = [&](const RoundRect &rect) {
+	const auto hasCustomBg = _brushOverride.has_value() || _activeGradient;
+	const auto gradient = [&] {
+		const auto base = _st.textBg->c;
+		auto result = QLinearGradient(0, 0, 0, 1);
+		result.setCoordinateMode(QGradient::ObjectBoundingMode);
+		result.setColorAt(0, base.lighter(115));
+		result.setColorAt(1, base.darker(115));
+		return QBrush(result);
+	};
+	const auto background = _brushOverride
+		? *_brushOverride
+		: _activeGradient
+		? gradient()
+		: QBrush();
+	const auto drawShape = [&](const QBrush &brush) {
 		const auto fill = myrtlrect(rounded);
+		PainterHighQualityEnabler hq(p);
+		p.setPen(_penOverride ? *_penOverride : Qt::NoPen);
+		p.setBrush(brush);
 		if (_fullRadius) {
-			const auto radius = rounded.height() / 2;
-			PainterHighQualityEnabler hq(p);
-			p.setPen(_penOverride ? *_penOverride : Qt::NoPen);
-			p.setBrush(_brushOverride ? *_brushOverride : rect.color()->b);
+			const auto radius = rounded.height() / 2.;
 			p.drawRoundedRect(fill, radius, radius);
 		} else if (_cornerRadii) {
-			auto hq = PainterHighQualityEnabler(p);
-			p.setPen(_penOverride ? *_penOverride : Qt::NoPen);
-			p.setBrush(_brushOverride ? *_brushOverride : rect.color()->b);
-			p.drawPath(
-				ComplexRoundedRectPath(
-					fill,
-					(*_cornerRadii)[0],
-					(*_cornerRadii)[1],
-					(*_cornerRadii)[2],
-					(*_cornerRadii)[3]));
-		} else if (_brushOverride) {
-			PainterHighQualityEnabler hq(p);
-			p.setPen(_penOverride ? *_penOverride : Qt::NoPen);
-			p.setBrush(*_brushOverride);
+			p.drawPath(ComplexRoundedRectPath(
+				fill,
+				(*_cornerRadii)[0],
+				(*_cornerRadii)[1],
+				(*_cornerRadii)[2],
+				(*_cornerRadii)[3]));
+		} else {
 			const auto radius = _st.radius ? _st.radius : st::buttonRadius;
 			p.drawRoundedRect(fill, radius, radius);
-		} else {
-			rect.paint(p, fill);
 		}
 	};
 	if (_penOverride && !_rippleOverride) {
 		paintRipple(p, rounded.topLeft());
 	}
-	drawRect(_roundRect);
+	if (hasCustomBg) {
+		drawShape(background);
+	} else {
+		_roundRect.paint(p, myrtlrect(rounded));
+	}
 
 	auto over = isOver();
 	auto down = isDown();
-	if (!_brushOverride && (over || down)) {
-		drawRect(_roundRectOver);
-	} else if (_brushOverride && (over || down)) {
-		PainterHighQualityEnabler hq(p);
-		p.setPen(Qt::NoPen);
-		p.setBrush(down ? QColor(0, 0, 0, 40) : QColor(255, 255, 255, 25));
-		const auto radius = _st.radius ? _st.radius : st::buttonRadius;
-		p.drawRoundedRect(myrtlrect(rounded), radius, radius);
+	const auto paintOver = (over || down) && !isDisabled();
+	if (!hasCustomBg && paintOver) {
+		_roundRectOver.paint(p, myrtlrect(rounded));
+	} else if (hasCustomBg && paintOver) {
+		auto overlay = _st.textBgOver->c;
+		overlay.setAlphaF(down ? 0.55 : 0.35);
+		drawShape(overlay);
 	}
 
 	if (!_penOverride || _rippleOverride) {
