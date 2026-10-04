@@ -63,6 +63,10 @@ std::optional<bool> isFiltered(
 
 		UErrorCode timeLimitStatus = U_ZERO_ERROR;
 		matcher->setTimeLimit(5000, timeLimitStatus);
+		if (U_FAILURE(timeLimitStatus)) {
+			LOG(("FILTER: regex time limit not supported: %1"
+				).arg(u_errorName(timeLimitStatus)));
+		}
 
 		const auto match = matcher->find();
 		const auto reversed = pattern.reversed;

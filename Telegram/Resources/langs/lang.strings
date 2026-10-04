@@ -8819,7 +8819,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_FiltersImportAction" = "Import";
 "ayu_FiltersExportTitle" = "Select a way to export filters";
 "ayu_FiltersExportClipboard" = "Copy to Clipboard";
-"ayu_FiltersExportURL" = "Publish on dpaste.com";
+"ayu_FiltersExportURL" = "Copy filters JSON to clipboard";
 "ayu_FiltersToastFailPublish" = "Failed to publish filters.";
 "ayu_FiltersToastFailFetch" = "Failed to fetch filters.";
 "ayu_FiltersToastFailImport" = "Failed to import filters.";
