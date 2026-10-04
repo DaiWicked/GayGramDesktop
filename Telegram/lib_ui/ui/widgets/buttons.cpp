@@ -6,6 +6,7 @@
 //
 #include "ui/widgets/buttons.h"
 
+#include "styles/palette.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/effects/cross_animation.h"
 #include "ui/effects/numbers_animation.h"
