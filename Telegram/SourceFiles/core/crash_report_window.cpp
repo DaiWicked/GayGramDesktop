@@ -321,16 +321,10 @@ LastCrashedWindow::LastCrashedWindow(
 , _launch(std::move(launch)) {
 	excludeReportUsername();
 
-#ifndef TDESKTOP_DISABLE_AUTOUPDATE
-	const auto &settings = AyuSettings::getInstance();
-	if (!settings.crashReporting()) {
-#else
-	if (true) {
-#endif
+	if (Core::OpenGLLastCheckFailed()) {
 		_sendingState = SendingNoReport;
-	} else if (Core::OpenGLLastCheckFailed()) {
-		// Nothing we can do right now with graphics driver crashes in GL.
-		_sendingState = SendingNoReport;
+	} else if (_sendingState == SendingUpdateCheck) {
+		_sendingState = SendingNone;
 	}
 	if (_sendingState != SendingNoReport) {
 		qint64 dumpsize = 0;
