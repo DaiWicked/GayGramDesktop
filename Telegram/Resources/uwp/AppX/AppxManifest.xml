@@ -46,9 +46,9 @@
           Executable="StartupTask.exe"
           EntryPoint="Windows.FullTrustApplication">
           <desktop:StartupTask
-            TaskId="TelegramStartupTask"
+            TaskId="GayGramStartupTask"
             Enabled="false"
-            DisplayName="Telegram Desktop" />
+            DisplayName="GayGram Desktop" />
         </desktop:Extension>
       </Extensions>
     </Application>
