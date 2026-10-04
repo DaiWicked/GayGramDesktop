@@ -310,6 +310,19 @@ RoundButton::RoundButton(
 		accessibilityNameChanged();
 		resizeToText(text);
 	}, lifetime());
+
+	if (_st.textBg == st::activeButtonBg) {
+		const auto base = _st.textBg->c;
+		auto lighter = base;
+		lighter = lighter.lighter(115);
+		auto darker = base;
+		darker = darker.darker(115);
+		QLinearGradient gradient(0, 0, 0, 1);
+		gradient.setCoordinateMode(QGradient::ObjectBoundingMode);
+		gradient.setColorAt(0, lighter);
+		gradient.setColorAt(1, darker);
+		setBrushOverride(QBrush(gradient));
+	}
 }
 
 void RoundButton::setTextTransform(RoundButtonTextTransform transform) {
@@ -520,6 +533,12 @@ void RoundButton::paintEvent(QPaintEvent *e) {
 	auto down = isDown();
 	if (!_brushOverride && (over || down)) {
 		drawRect(_roundRectOver);
+	} else if (_brushOverride && (over || down)) {
+		PainterHighQualityEnabler hq(p);
+		p.setPen(Qt::NoPen);
+		p.setBrush(down ? QColor(0, 0, 0, 40) : QColor(255, 255, 255, 25));
+		const auto radius = _st.radius ? _st.radius : st::buttonRadius;
+		p.drawRoundedRect(myrtlrect(rounded), radius, radius);
 	}
 
 	if (!_penOverride || _rippleOverride) {
