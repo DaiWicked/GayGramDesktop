@@ -93,7 +93,7 @@ semiboldTextStyle: TextStyle(defaultTextStyle) {
 	font: semiboldFont;
 }
 
-slideDuration: 240;
+slideDuration: 200;
 slideShift: 100px;
 slideShadow: icon {{ "slide_shadow", slideFadeOutShadowFg }};
 
@@ -132,7 +132,7 @@ defaultVerticalListSkip: 6px;
 shakeShift: 4px;
 shakeDuration: 300;
 
-universalDuration: 120;
+universalDuration: 150;
 
 // floating badge colors
 roundedFg: radialFg;

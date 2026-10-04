@@ -714,7 +714,7 @@ defaultLinkButton: LinkButton {
 
 defaultRippleAnimation: RippleAnimation {
 	color: windowBgRipple;
-	showDuration: 650;
+	showDuration: 450;
 	hideDuration: 200;
 }
 
@@ -725,7 +725,7 @@ defaultRippleAnimationBgOver: RippleAnimation(defaultRippleAnimation) {
 	color: windowBgOver;
 }
 
-buttonRadius: 4px;
+buttonRadius: 8px;
 
 defaultActiveButton: RoundButton {
 	textFg: activeButtonFg;
@@ -1065,7 +1065,7 @@ defaultInputField: InputField {
 
 	border: 1px;
 	borderActive: 2px;
-	borderRadius: 0px;
+	borderRadius: 8px;
 	borderDenominator: 1;
 
 	style: boxTextStyle;
@@ -1582,8 +1582,8 @@ defaultMultilineToast: Toast(defaultToast) {
 
 // Windows specific title
 
-windowTitleButtonWidth: 36px;
-windowTitleHeight: 24px;
+windowTitleButtonWidth: 46px;
+windowTitleHeight: 32px;
 windowTitleButton: IconButton {
 	width: windowTitleButtonWidth;
 	height: windowTitleHeight;

@@ -34,8 +34,8 @@ Box {
 	shadowIgnoreBottomSkip: bool;
 }
 
-boxDuration: 200;
-boxRadius: 6px;
+boxDuration: 160;
+boxRadius: 10px;
 glassHighlightWidth: 1px;
 
 boxButtonFont: font(boxFontSize semibold);

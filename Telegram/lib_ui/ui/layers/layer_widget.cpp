@@ -26,6 +26,27 @@ namespace {
 
 constexpr auto kGlassBlurRadius = 24;
 constexpr auto kGlassDownscale = 4;
+constexpr auto kGlassSaturationBoost = 118;
+
+[[nodiscard]] QImage BoostGlassSaturation(QImage &&image) {
+	for (auto y = 0; y < image.height(); ++y) {
+		const auto row = reinterpret_cast<QRgb*>(image.scanLine(y));
+		for (auto x = 0; x < image.width(); ++x) {
+			const auto pixel = row[x];
+			const auto r = int(qRed(pixel));
+			const auto g = int(qGreen(pixel));
+			const auto b = int(qBlue(pixel));
+			const auto luma = (r * 54 + g * 183 + b * 19) >> 8;
+			const auto boost = [&](int channel) {
+				const auto mixed = luma
+					+ ((channel - luma) * kGlassSaturationBoost) / 100;
+				return std::clamp(mixed, 0, 255);
+			};
+			row[x] = qRgba(boost(r), boost(g), boost(b), qAlpha(pixel));
+		}
+	}
+	return std::move(image);
+}
 
 [[nodiscard]] QPixmap BlurGlassCache(QPixmap &&cache) {
 	if (cache.isNull()) {
@@ -44,6 +65,7 @@ constexpr auto kGlassDownscale = 4;
 	image = Images::BlurLargeImage(
 		std::move(image),
 		std::max(1, kGlassBlurRadius * ratio / kGlassDownscale));
+	image = BoostGlassSaturation(std::move(image));
 	image = image.scaled(
 		full,
 		Qt::IgnoreAspectRatio,
@@ -208,7 +230,7 @@ void LayerStackWidget::BackgroundWidget::setMainMenuShown(bool shown) {
 			_mainMenuShown ? 0. : 1.,
 			_mainMenuShown ? 1. : 0.,
 			_duration,
-			anim::easeOutCirc);
+			anim::easeOutQuint);
 	}
 	_mainMenuCacheWidth = (_mainMenuCache.width() / style::DevicePixelRatio())
 		- st::boxRoundShadow.extend.right();
@@ -249,7 +271,7 @@ void LayerStackWidget::BackgroundWidget::checkWasShown(bool wasShown) {
 			wasShown ? 1. : 0.,
 			wasShown ? 0. : 1.,
 			_duration,
-			anim::easeOutCirc);
+			anim::easeOutQuint);
 	}
 }
 
