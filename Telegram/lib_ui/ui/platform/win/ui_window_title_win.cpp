@@ -137,9 +137,11 @@ void TitleWidget::setResizeEnabled(bool enabled) {
 
 void TitleWidget::paintEvent(QPaintEvent *e) {
 	const auto active = window()->isActiveWindow();
-	QPainter(this).fillRect(
-		e->rect(),
-		active ? _controls.st()->bgActive : _controls.st()->bg);
+	const auto bg = active ? _controls.st()->bgActive : _controls.st()->bg;
+	QPainter p(this);
+	p.fillRect(e->rect(), bg);
+	const auto highlight = bg->c.lighter(112);
+	p.fillRect(0, 0, width(), st::lineWidth, QColor(highlight.red(), highlight.green(), highlight.blue(), 40));
 }
 
 void TitleWidget::resizeEvent(QResizeEvent *e) {
