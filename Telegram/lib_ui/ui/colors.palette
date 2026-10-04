@@ -127,12 +127,14 @@ trayCounterFgMacInvert: #ffffff01; // tray icon counter text when tray icon is p
 
 // layers
 layerBg: #0000007f; // box and main menu background layer fade
+layerGlassBg: #0000004d; // liquid glass layer tint
+glassHighlightFg: #ffffff59; // liquid glass highlight border
 
 cancelIconFg: menuIconFg; // default for settings close icon and box search cancel icon
 cancelIconFgOver: menuIconFgOver; // default for settings close icon and box search cancel icon with mouse over
 
 // boxes
-boxBg: #fffffff5; // box background (semi-transparent for liquid glass P0)
+boxBg: #ffffffb3; // box background (semi-transparent for liquid glass)
 boxTextFg: windowFg; // box text
 boxTextFgGood: #4ab44a; // accepted box text (like when choosing username that is not occupied)
 boxTextFgError: #d84d4d; // rejecting box text (like when choosing username that is occupied)

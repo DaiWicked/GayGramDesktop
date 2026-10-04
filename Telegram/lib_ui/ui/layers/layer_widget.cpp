@@ -22,6 +22,37 @@
 #include <QtGui/QtEvents>
 
 namespace Ui {
+namespace {
+
+constexpr auto kGlassBlurRadius = 24;
+constexpr auto kGlassDownscale = 4;
+
+[[nodiscard]] QPixmap BlurGlassCache(QPixmap &&cache) {
+	if (cache.isNull()) {
+		return std::move(cache);
+	}
+	const auto ratio = style::DevicePixelRatio();
+	auto image = cache.toImage();
+	const auto full = image.size();
+	auto small = full / kGlassDownscale;
+	if (small.width() < 1) small.setWidth(1);
+	if (small.height() < 1) small.setHeight(1);
+	image = image.scaled(
+		small,
+		Qt::IgnoreAspectRatio,
+		Qt::SmoothTransformation);
+	image = Images::BlurLargeImage(
+		std::move(image),
+		std::max(1, kGlassBlurRadius * ratio / kGlassDownscale));
+	image = image.scaled(
+		full,
+		Qt::IgnoreAspectRatio,
+		Qt::SmoothTransformation);
+	image.setDevicePixelRatio(ratio);
+	return QPixmap::fromImage(std::move(image));
+}
+
+} // namespace
 
 class LayerStackWidget::BackgroundWidget : public RpWidget {
 public:
@@ -94,7 +125,7 @@ void LayerStackWidget::BackgroundWidget::setCacheImages(
 		QPixmap &&mainMenuCache,
 		QPixmap &&specialLayerCache,
 		QPixmap &&layerCache) {
-	_bodyCache = std::move(bodyCache);
+	_bodyCache = BlurGlassCache(std::move(bodyCache));
 	_mainMenuCache = std::move(mainMenuCache);
 	_specialLayerCache = std::move(specialLayerCache);
 	_layerCache = std::move(layerCache);
@@ -117,7 +148,7 @@ bool LayerStackWidget::BackgroundWidget::hasBodyCache() const {
 
 void LayerStackWidget::BackgroundWidget::refreshBodyCache(
 		QPixmap &&bodyCache) {
-	_bodyCache = std::move(bodyCache);
+	_bodyCache = BlurGlassCache(std::move(bodyCache));
 	setAttribute(Qt::WA_OpaquePaintEvent, !_bodyCache.isNull());
 }
 
@@ -301,13 +332,13 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 		// rect above its cache with alpha_current opacity.
 		const auto region = QRegion(bg) - specialLayerBox;
 		for (const auto &rect : region) {
-			p.fillRect(rect, st::layerBg);
+			p.fillRect(rect, st::layerGlassBg);
 		}
-		p.setOpacity((bgOpacity - overSpecialOpacity) / (1. - (overSpecialOpacity * st::layerBg->c.alphaF())));
-		p.fillRect(specialLayerBox, st::layerBg);
+		p.setOpacity((bgOpacity - overSpecialOpacity) / (1. - (overSpecialOpacity * st::layerGlassBg->c.alphaF())));
+		p.fillRect(specialLayerBox, st::layerGlassBg);
 		p.setOpacity(bgOpacity);
 	} else {
-		p.fillRect(bg, st::layerBg);
+		p.fillRect(bg, st::layerGlassBg);
 	}
 
 	if (!_specialLayerCache.isNull() && specialLayerOpacity > 0) {
@@ -319,7 +350,7 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 	if (!layerBox.isEmpty()) {
 		if (!_specialLayerCache.isNull()) {
 			p.setOpacity(overSpecialOpacity);
-			p.fillRect(specialLayerBox, st::layerBg);
+			p.fillRect(specialLayerBox, st::layerGlassBg);
 		}
 		if (_layerCache.isNull()) {
 			p.setOpacity(layerOpacity);
@@ -560,11 +591,13 @@ void LayerStackWidget::setCacheImages() {
 	if (isAncestorOf(window()->focusWidget())) {
 		setFocus();
 	}
-	if (_mainMenu) {
+	if (_specialLayer || currentLayer() || _mainMenu) {
 		removeBodyCache();
 		hideChildren();
 		bodyCache = Ui::GrabWidget(parentWidget());
 		showChildren();
+	}
+	if (_mainMenu) {
 		mainMenuCache = Ui::Shadow::grab(_mainMenu, st::boxRoundShadow, RectPart::Right);
 	}
 	setAttribute(Qt::WA_OpaquePaintEvent, !bodyCache.isNull());

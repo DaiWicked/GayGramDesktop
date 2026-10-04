@@ -139,6 +139,15 @@ void BoxLayerWidget::paintEvent(QPaintEvent *e) {
 			p.fillRect(rect, st().bg);
 		}
 	}
+	{
+		auto hq = PainterHighQualityEnabler(p);
+		p.setBrush(Qt::NoBrush);
+		p.setPen(QPen(st::glassHighlightFg, st::glassHighlightWidth));
+		p.drawRoundedRect(
+			QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5),
+			st::boxRadius,
+			st::boxRadius);
+	}
 	if (!_additionalTitle.current().isEmpty()
 		&& clip.intersects(QRect(0, 0, width(), titleHeight()))) {
 		paintAdditionalTitle(p);
