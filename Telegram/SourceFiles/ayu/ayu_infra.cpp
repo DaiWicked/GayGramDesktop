@@ -13,6 +13,8 @@
 #include "ayu/data/ayu_database.h"
 #include "ayu/ui/ayu_logo.h"
 #include "features/translator/ayu_translator.h"
+#include "core/application.h"
+#include "core/core_settings.h"
 #include "lang/lang_instance.h"
 #include "ui/chat/chat_style_radius.h"
 #include "utils/rc_manager.h"
@@ -23,6 +25,10 @@
 
 namespace AyuInfra {
 
+namespace {
+rpl::lifetime _langLifetime;
+} // namespace
+
 void initLang() {
 	QString id = Lang::GetInstance().id();
 	QString baseId = Lang::GetInstance().baseId();
@@ -32,6 +38,16 @@ void initLang() {
 	}
 	AyuLanguage::init();
 	AyuLanguage::currentInstance()->fetchLanguage(id, baseId);
+
+	Lang::GetInstance().idChanges() | rpl::on_next([] {
+		if (Core::App().settings().readPref<bool>("ayuZhOverride", false)) {
+			AyuLanguage::currentInstance()->applyLocalChinese();
+		}
+	}, _langLifetime);
+
+	if (Core::App().settings().readPref<bool>("ayuZhOverride", false)) {
+		AyuLanguage::currentInstance()->applyLocalChinese();
+	}
 }
 
 void initUiSettings() {

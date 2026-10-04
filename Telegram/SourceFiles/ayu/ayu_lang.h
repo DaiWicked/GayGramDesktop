@@ -21,6 +21,8 @@ public:
 
 	void fetchLanguage(const QString &id, const QString &baseId);
 	void applyLanguageJson(QJsonDocument doc);
+	void applyLocalChinese();
+	void resetLocalChinese();
 
 public Q_SLOTS:
 	void fetchFinished();
