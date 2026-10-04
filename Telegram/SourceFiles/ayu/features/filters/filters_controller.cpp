@@ -61,7 +61,8 @@ std::optional<bool> isFiltered(
 			return false;
 		}
 
-		matcher->setTimeLimit(5000);
+		UErrorCode timeLimitStatus = U_ZERO_ERROR;
+		matcher->setTimeLimit(5000, timeLimitStatus);
 
 		const auto match = matcher->find();
 		const auto reversed = pattern.reversed;
