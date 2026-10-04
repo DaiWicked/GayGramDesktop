@@ -113,7 +113,6 @@ QPointer<QNetworkReply> GoogleTranslator::startSingleTranslation(
 	req.setHeader(QNetworkRequest::UserAgentHeader, userAgent);
 	req.setHeader(QNetworkRequest::ContentTypeHeader, QString::fromLatin1(kGoogleContentType));
 	req.setRawHeader(QByteArrayLiteral("Accept"), QByteArrayLiteral("application/json"));
-	req.setRawHeader(QByteArrayLiteral("X-Goog-Api-Key"), QByteArray(kGoogleDefaultApiKey));
 
 	QPointer<QNetworkReply> reply = _nam.post(req, body);
 

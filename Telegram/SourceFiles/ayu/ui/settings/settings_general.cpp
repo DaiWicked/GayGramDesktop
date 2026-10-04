@@ -40,7 +40,6 @@ void BuildTranslator(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 
 	const auto options = std::vector{
 		std::pair(TranslationProvider::Telegram, QString("Telegram")),
-		std::pair(TranslationProvider::Google, QString("Google")),
 		std::pair(TranslationProvider::Yandex, QString("Yandex")),
 	};
 	const auto nativeAvailable = Platform::IsTranslateProviderAvailable();
