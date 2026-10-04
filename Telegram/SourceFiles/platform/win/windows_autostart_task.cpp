@@ -39,6 +39,18 @@ void Toggle(bool enabled, Fn<void(bool)> done) {
 	if (!base::WinRT::Supported()) {
 		return;
 	}
+	base::WinRT::Try([&] {
+		StartupTask::GetAsync(L"TelegramStartupTask").Completed([=](
+				IAsyncOperation<StartupTask> operation,
+				AsyncStatus status) {
+			base::WinRT::Try([&] {
+				const auto oldTask = operation.GetResults();
+				if (IsEnabled(oldTask.State())) {
+					oldTask.Disable();
+				}
+			});
+		});
+	});
 	const auto processEnableResult = [=](StartupTaskState state) {
 		LOG(("Startup Task: Enable finished, state: %1").arg(int(state)));
 
