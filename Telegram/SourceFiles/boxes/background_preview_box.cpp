@@ -557,48 +557,54 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 		[=] { return _serviceBg.value_or(QColor(255, 255, 255, 0)); });
 	_blur->show();
 
-	_blurSlider = Ui::CreateChild<Ui::MediaSlider>(
-		this,
-		st::defaultContinuousSlider);
+	if (!_blurSlider) {
+		_blurSlider.create(this, st::defaultContinuousSlider);
+		_blurSlider->setAlwaysDisplayMarker(true);
+		const auto blurHandle = [=](float64 value) {
+			if (!std::isfinite(value)) {
+				return;
+			}
+			const auto intensity = std::clamp(
+				int(base::SafeRound(std::clamp(value, 0., 1.) * 100)),
+				0,
+				100);
+			if (_blurIntensity == intensity) {
+				return;
+			}
+			_blurIntensity = intensity;
+			Core::App().settings().writePref<int>(
+				"gaygramWallpaperBlur",
+				intensity);
+			_scaled = _blurred = QPixmap();
+			setScaledFromThumb();
+			update();
+		};
+		_blurSlider->setChangeProgressCallback(blurHandle);
+		_blurSlider->setChangeFinishedCallback(blurHandle);
+	}
 	_blurSlider->setValue(_blurIntensity / 100.);
-	_blurSlider->setAlwaysDisplayMarker(true);
-	_blurSlider->resize(st::defaultContinuousSlider.seekSize);
+	_blurSlider->setDisabled(_paper.document() && _full.isNull());
 	_blurSlider->show();
-	const auto blurHandle = [=](float64 value) {
-		const auto intensity = std::clamp(
-			int(base::SafeRound(value * 100)),
-			0,
-			100);
-		_blurIntensity = intensity;
-		Core::App().settings().writePref<int>(
-			"gaygramWallpaperBlur",
-			intensity);
-		_scaled = _blurred = QPixmap();
-		setScaledFromThumb();
-		checkBlurAnimationStart();
-		update();
-	};
-	_blurSlider->setChangeProgressCallback(blurHandle);
-	_blurSlider->setChangeFinishedCallback(blurHandle);
 
 	rpl::combine(
 		sizeValue(),
 		_blur->sizeValue(),
-		_blurSlider->sizeValue(),
 		_dimmingHeight.value()
 	) | rpl::on_next([=](
 			QSize outer,
 			QSize checkSize,
-			QSize sliderSize,
 			int dimming) {
 		const auto bottom = st::historyPaddingBottom;
+		const auto sliderHeight = st::defaultContinuousSlider.seekSize.height();
+		const auto sliderWidth = outer.width()
+			- st::localStorageLimitMargin.left()
+			- st::localStorageLimitMargin.right();
 		const auto sliderY = outer.height()
 			- dimming
 			- bottom
-			- sliderSize.height();
-		_blurSlider->move(
-			(outer.width() - sliderSize.width()) / 2,
-			sliderY);
+			- sliderHeight;
+		_blurSlider->resize(sliderWidth, sliderHeight);
+		_blurSlider->move((outer.width() - sliderWidth) / 2, sliderY);
 		_blur->move(
 			(outer.width() - checkSize.width()) / 2,
 			sliderY - checkSize.height() - st::defaultVerticalListSkip);
@@ -611,11 +617,11 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 	}, _blur->lifetime());
 
 	_blur->setDisabled(_paper.document() && _full.isNull());
-	_blurSlider->setDisabled(_paper.document() && _full.isNull());
 
 	if (_forBothOverlay) {
 		_forBothOverlay->raise();
 	}
+	_blurSlider->raise();
 }
 
 void BackgroundPreviewBox::apply() {

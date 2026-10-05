@@ -83,9 +83,15 @@ void ContinuousSlider::mouseMoveEvent(QMouseEvent *e) {
 
 float64 ContinuousSlider::computeValue(const QPoint &pos) const {
 	const auto seekRect = myrtlrect(getSeekRect());
-	const auto result = isHorizontal() ?
-		(pos.x() - seekRect.x()) / float64(seekRect.width()) :
-		(1. - (pos.y() - seekRect.y()) / float64(seekRect.height()));
+	const auto length = isHorizontal()
+		? float64(seekRect.width())
+		: float64(seekRect.height());
+	if (length <= 0.) {
+		return 0.;
+	}
+	const auto result = isHorizontal()
+		? (pos.x() - seekRect.x()) / length
+		: (1. - (pos.y() - seekRect.y()) / length);
 	const auto snapped = std::clamp(result, 0., 1.);
 	return _adjustCallback ? _adjustCallback(snapped) : snapped;
 }

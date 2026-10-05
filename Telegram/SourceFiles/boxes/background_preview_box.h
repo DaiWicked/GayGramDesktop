@@ -122,7 +122,7 @@ private:
 	base::binary_guard _generating;
 	std::optional<QColor> _serviceBg;
 	object_ptr<Ui::Checkbox> _blur = { nullptr };
-	Ui::MediaSlider *_blurSlider = nullptr;
+	object_ptr<Ui::MediaSlider> _blurSlider = { nullptr };
 	int _blurIntensity = 50;
 
 	rpl::variable<bool> _appNightMode;
