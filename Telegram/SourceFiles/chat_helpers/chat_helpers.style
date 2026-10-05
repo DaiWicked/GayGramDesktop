@@ -1361,7 +1361,7 @@ boxAttachEmojiTop: 20px;
 historySendIcon: icon {{ "chat/input_send", historySendIconFg }};
 historySendIconOver: icon {{ "chat/input_send", historySendIconFgOver }};
 historySendSize: size(44px, 46px);
-historyScheduleIcon: icon {{ "chat/input_schedule", historyComposeAreaBg }};
+historyScheduleIcon: icon {{ "chat/input_schedule", windowFgActive }};
 historyScheduleIconPosition: point(7px, 8px);
 historyEditSaveIcon: icon {{ "chat/input_save", historySendIconFg }};
 historyEditSaveIconOver: icon {{ "chat/input_save", historySendIconFgOver }};
@@ -1454,9 +1454,10 @@ defaultRecordBar: RecordBar {
 
 historySend: SendButton {
 	sendIconPosition: point(10px, 11px);
+	sendIconFillPadding: 8px;
 	inner: IconButton(historyAttach) {
-		icon: historySendIcon;
-		iconOver: historySendIconOver;
+		icon: icon {{ "chat/input_send", windowFgActive }};
+		iconOver: icon {{ "chat/input_send", windowFgActive }};
 	}
 	stars: RoundButton(defaultActiveButton) {
 		height: 28px;
@@ -1581,7 +1582,7 @@ defaultChooseSendAs: ChooseSendAs {
 }
 defaultComposeControls: ComposeControls {
 	bg: historyComposeAreaBg;
-	radius: 0px;
+	radius: 14px;
 	padding: margins(historySendRight, historySendPadding, historySendRight, historySendPadding);
 
 	field: historyComposeField;
