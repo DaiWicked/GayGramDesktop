@@ -135,13 +135,29 @@ void TitleWidget::setResizeEnabled(bool enabled) {
 	_controls.setResizeEnabled(enabled);
 }
 
+namespace {
+
+constexpr auto kTitleLineAlphaActive = 30;
+constexpr auto kTitleLineAlphaInactive = 15;
+
+} // namespace
+
 void TitleWidget::paintEvent(QPaintEvent *e) {
 	const auto active = window()->isActiveWindow();
 	const auto bg = active ? _controls.st()->bgActive : _controls.st()->bg;
 	QPainter p(this);
 	p.fillRect(e->rect(), bg);
-	const auto highlight = bg->c.lighter(112);
-	p.fillRect(0, 0, width(), st::lineWidth, QColor(highlight.red(), highlight.green(), highlight.blue(), 40));
+
+	const auto dark = (bg->c.lightness() < 128);
+	if (dark) {
+		p.fillRect(
+			0, 0, width(), st::lineWidth,
+			QColor(255, 255, 255, active
+				? kTitleLineAlphaActive
+				: kTitleLineAlphaInactive));
+	} else {
+		p.fillRect(0, 0, width(), st::lineWidth, QColor(255, 255, 255));
+	}
 }
 
 void TitleWidget::resizeEvent(QResizeEvent *e) {
