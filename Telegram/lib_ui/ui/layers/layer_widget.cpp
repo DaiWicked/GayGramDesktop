@@ -356,7 +356,10 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 		for (const auto &rect : region) {
 			p.fillRect(rect, st::layerGlassBg);
 		}
-		p.setOpacity((bgOpacity - overSpecialOpacity) / (1. - (overSpecialOpacity * st::layerGlassBg->c.alphaF())));
+		const auto denominator = 1. - (overSpecialOpacity * st::layerGlassBg->c.alphaF());
+		p.setOpacity(denominator > 0.
+			? (bgOpacity - overSpecialOpacity) / denominator
+			: 1.);
 		p.fillRect(specialLayerBox, st::layerGlassBg);
 		p.setOpacity(bgOpacity);
 	} else {

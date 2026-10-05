@@ -1792,6 +1792,9 @@ float64 Settings::DefaultDialogsWidthRatio() {
 qint32 Settings::SerializePlaybackSpeed(PlaybackSpeed speed) {
 	using namespace Media;
 
+	if (!std::isfinite(speed.value)) {
+		return speed.enabled ? 100 : -100;
+	}
 	const auto value = int(base::SafeRound(
 		std::clamp(speed.value, kSpeedMin, kSpeedMax) * 100));
 	return speed.enabled ? value : -value;

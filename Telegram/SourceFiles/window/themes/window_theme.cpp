@@ -803,6 +803,16 @@ void ChatBackground::setPrepared(
 			50);
 		prepared = Ui::PrepareBlurredBackground(std::move(prepared), blurStrength);
 	}
+	if (!prepared.isNull() && !_paper.isPattern()) {
+		const auto dimming = std::clamp(_paper.patternIntensity(), 0, 100);
+		if (dimming > 0) {
+			const auto ratio = int(prepared.devicePixelRatio());
+			auto p = QPainter(&prepared);
+			p.fillRect(
+				QRect(0, 0, prepared.width() / ratio, prepared.height() / ratio),
+				QColor(0, 0, 0, 255 * dimming / 100));
+		}
+	}
 	if (adjustPaletteRequired()) {
 		if ((prepared.isNull() || _paper.isPattern())
 			&& !_paper.backgroundColors().empty()) {

@@ -224,8 +224,7 @@ BackgroundPreviewBox::BackgroundPreviewBox(
 , _appNightMode(Window::Theme::IsNightModeValue())
 , _boxDarkMode(_appNightMode.current())
 , _dimmingIntensity(std::clamp(_paper.patternIntensity(), 0, 100))
-, _dimmed(_forPeer
-	&& (_paper.document() || _paper.localThumbnail())
+, _dimmed((_paper.document() || _paper.localThumbnail())
 	&& !_paper.isPattern()) {
 	if (_media) {
 		_media->thumbnailWanted(_paper.fileOrigin());
@@ -364,6 +363,9 @@ void BackgroundPreviewBox::createDimmingSlider(bool dark) {
 	_dimmingSlider->setAlwaysDisplayMarker(true);
 	_dimmingSlider->resize(st::defaultContinuousSlider.seekSize);
 	const auto handle = [=](float64 value) {
+		if (!std::isfinite(value)) {
+			return;
+		}
 		const auto intensity = std::clamp(
 			int(base::SafeRound(value * 100)),
 			0,
@@ -909,7 +911,7 @@ void BackgroundPreviewBox::paintEvent(QPaintEvent *e) {
 	}
 	if (!_scaled.isNull()) {
 		paintImage(p);
-		const auto dimming = (_dimmed && _boxDarkMode.current())
+		const auto dimming = _dimmed
 			? _dimmingIntensity
 			: 0;
 		if (dimming > 0) {

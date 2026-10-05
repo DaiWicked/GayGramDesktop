@@ -76,9 +76,10 @@ void ContinuousSlider::setFadeOpacity(float64 opacity) {
 }
 
 void ContinuousSlider::mouseMoveEvent(QMouseEvent *e) {
-	if (_mouseDown) {
-		updateDownValueFromPos(e->pos());
+	if (_disabled || !_mouseDown) {
+		return;
 	}
+	updateDownValueFromPos(e->pos());
 }
 
 float64 ContinuousSlider::computeValue(const QPoint &pos) const {
@@ -97,6 +98,9 @@ float64 ContinuousSlider::computeValue(const QPoint &pos) const {
 }
 
 void ContinuousSlider::mousePressEvent(QMouseEvent *e) {
+	if (_disabled) {
+		return;
+	}
 	_mouseDown = true;
 	_downValue = computeValue(e->pos());
 	update();
@@ -106,6 +110,10 @@ void ContinuousSlider::mousePressEvent(QMouseEvent *e) {
 }
 
 void ContinuousSlider::mouseReleaseEvent(QMouseEvent *e) {
+	if (_disabled) {
+		_mouseDown = false;
+		return;
+	}
 	if (_mouseDown) {
 		_mouseDown = false;
 		const auto weak = base::make_weak(this);
@@ -121,7 +129,7 @@ void ContinuousSlider::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void ContinuousSlider::wheelEvent(QWheelEvent *e) {
-	if (_mouseDown || !moveByWheel()) {
+	if (_disabled || _mouseDown || !moveByWheel()) {
 		return;
 	}
 	constexpr auto step = static_cast<int>(QWheelEvent::DefaultDeltasPerStep);
