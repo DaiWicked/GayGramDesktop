@@ -54,6 +54,7 @@ private:
 	void updateWindowFrameColors(bool active);
 	void updateShadow();
 	void updateCornersRounding();
+	void updateRoundRegion();
 	void fixMaximizedWindow();
 	[[nodiscard]] bool filterNativeEvent(
 		UINT msg,

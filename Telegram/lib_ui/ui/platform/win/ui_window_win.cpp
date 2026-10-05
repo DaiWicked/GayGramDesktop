@@ -278,18 +278,57 @@ void WindowHelper::updateShadow() {
 	}
 }
 
+namespace {
+
+constexpr auto kWindowRoundRadius = 8;
+
+} // namespace
+
 void WindowHelper::updateCornersRounding() {
-	if (!_handle || !::Platform::IsWindows11OrGreater()) {
+	if (!_handle) {
+		return;
+	} else if (::Platform::IsWindows11OrGreater()) {
+		const auto preference = (_isFullScreen || _isMaximizedAndTranslucent)
+			? kDWMWCP_DONOTROUND
+			: kDWMWCP_ROUND;
+		DwmSetWindowAttribute(
+			_handle,
+			kDWMWA_WINDOW_CORNER_PREFERENCE,
+			&preference,
+			sizeof(preference));
 		return;
 	}
-	const auto preference = (_isFullScreen || _isMaximizedAndTranslucent)
-		? kDWMWCP_DONOTROUND
-		: kDWMWCP_ROUND;
-	DwmSetWindowAttribute(
-		_handle,
-		kDWMWA_WINDOW_CORNER_PREFERENCE,
-		&preference,
-		sizeof(preference));
+	updateRoundRegion();
+}
+
+void WindowHelper::updateRoundRegion() {
+	const auto state = window()->windowState();
+	const auto square = _isFullScreen
+		|| (state & (Qt::WindowMaximized | Qt::WindowFullScreen))
+		|| _isMaximizedAndTranslucent
+		|| _title->isHidden();
+	if (square) {
+		SetWindowRgn(_handle, nullptr, TRUE);
+		return;
+	}
+	auto rect = RECT{};
+	if (!GetWindowRect(_handle, &rect)) {
+		return;
+	}
+	const auto dpi = _dpi.current() ? int(_dpi.current()) : 96;
+	const auto diameter = 2 * MulDiv(kWindowRoundRadius, dpi, 96);
+	const auto region = CreateRoundRectRgn(
+		0, 0,
+		rect.right - rect.left + 1,
+		rect.bottom - rect.top + 1,
+		diameter,
+		diameter);
+	if (!region) {
+		return;
+	}
+	if (!SetWindowRgn(_handle, region, TRUE)) {
+		DeleteObject(region);
+	}
 }
 
 void WindowHelper::setMinimumSize(QSize size) {
@@ -595,6 +634,7 @@ bool WindowHelper::filterNativeEvent(
 			}
 			updateMargins();
 			_title->refreshAdditionalPaddings(_handle);
+			updateRoundRegion();
 			if (_shadow) {
 				const auto changes = (wParam == SIZE_MINIMIZED
 					|| wParam == SIZE_MAXIMIZED)
