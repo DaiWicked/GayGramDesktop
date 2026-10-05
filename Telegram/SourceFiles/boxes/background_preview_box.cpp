@@ -399,7 +399,7 @@ void BackgroundPreviewBox::createDimmingSlider(bool dark) {
 			_dimmingWrap->move(0, top);
 		}, _dimmingWrap->lifetime());
 
-		_dimmingWrap->toggle(dark, anim::type::instant);
+		_dimmingWrap->toggle(_paperEmojiId.isEmpty() || dark, anim::type::instant);
 		_dimmingHeight = _dimmingWrap->heightValue();
 		_dimmingHeight.changes() | rpl::on_next([=] {
 			update();
@@ -915,7 +915,7 @@ void BackgroundPreviewBox::paintEvent(QPaintEvent *e) {
 			? _dimmingIntensity
 			: 0;
 		if (dimming > 0) {
-			const auto alpha = 255 * dimming / 100;
+			const auto alpha = 180 * dimming / 100;
 			p.fillRect(e->rect(), QColor(0, 0, 0, alpha));
 		}
 		paintRadial(p);
@@ -933,7 +933,9 @@ void BackgroundPreviewBox::paintEvent(QPaintEvent *e) {
 				return;
 			}
 			_dimmingToggleScheduled = false;
-			_dimmingWrap->toggle(_boxDarkMode.current(), anim::type::normal);
+			_dimmingWrap->toggle(
+				_paperEmojiId.isEmpty() || _boxDarkMode.current(),
+				anim::type::normal);
 		});
 	}
 }

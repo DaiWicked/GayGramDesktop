@@ -331,6 +331,10 @@ void AyuLanguage::applyLocalChinese() {
 		Lang::GetInstance().resetValue(key.toUtf8());
 		Lang::GetInstance().applyValue(key.toUtf8(), value.toUtf8());
 	}
+	Lang::GetInstance().resetValue("lng_background_dimming");
+	Lang::GetInstance().applyValue(
+		"lng_background_dimming",
+		u"背景压暗"_q.toUtf8());
 	Lang::GetInstance().updatePluralRules();
 	Local::writeLangPack();
 }

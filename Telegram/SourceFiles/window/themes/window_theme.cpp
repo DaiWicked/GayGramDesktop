@@ -810,7 +810,7 @@ void ChatBackground::setPrepared(
 			auto p = QPainter(&prepared);
 			p.fillRect(
 				QRect(0, 0, prepared.width() / ratio, prepared.height() / ratio),
-				QColor(0, 0, 0, 255 * dimming / 100));
+				QColor(0, 0, 0, 180 * dimming / 100));
 		}
 	}
 	if (adjustPaletteRequired()) {
