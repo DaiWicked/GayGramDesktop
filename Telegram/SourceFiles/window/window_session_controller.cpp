@@ -3866,6 +3866,9 @@ Ui::ChatThemeBackgroundData SessionController::backgroundData(
 		.patternOpacity = patternOpacity,
 		.darkModeDimming = darkModeDimming,
 		.isBlurred = isBlurred,
+		.blurStrength = Core::App().settings().readPref<int>(
+			"gaygramWallpaperBlur",
+			50),
 		.forDarkMode = theme.basedOnDark,
 		.generateGradient = generateGradient,
 		.gradientRotation = gradientRotation,

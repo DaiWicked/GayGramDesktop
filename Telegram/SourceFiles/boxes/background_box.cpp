@@ -148,6 +148,7 @@ private:
 	std::vector<Paper> _papers;
 	uint64 _currentId = 0;
 	uint64 _insertedResetId = 0;
+	Data::WallPaper _currentPaper = Data::WallPaper(0);
 
 	Selection _over;
 	Selection _overDown;
@@ -593,16 +594,24 @@ void BackgroundBox::Inner::updatePapers() {
 		}) | ranges::to_vector;
 		pushCustomPapers();
 		sortPapers();
+		_currentPaper = _forPeer
+			? (_forPeer->wallPaper() ? *_forPeer->wallPaper() : Data::WallPaper(0))
+			: Window::Theme::Background()->paper();
+		auto presets = std::vector<Paper>();
 		for (const auto &slug : kPresetGradients) {
 			if (const auto preset = Data::WallPaper::FromColorsSlug(slug)) {
-				const auto exists = ranges::find_if(
+				const auto exists = ranges::any_of(
 					_papers,
-					[&](const Paper &p) { return p.data.equals(*preset); });
-				if (exists == end(_papers)) {
-					_papers.insert(begin(_papers), Paper{ *preset });
+					[&](const Paper &p) {
+						return (p.data.backgroundColors() == preset->backgroundColors())
+							&& (p.data.isPattern() == preset->isPattern());
+					});
+				if (!exists) {
+					presets.push_back(Paper{ *preset });
 				}
 			}
 		}
+		_papers.insert(begin(_papers), begin(presets), end(presets));
 	}
 	resizeToContentAndPreload();
 }
@@ -719,7 +728,10 @@ void BackgroundBox::Inner::paintPaper(
 	}
 
 	const auto over = !v::is_null(_overDown) ? _overDown : _over;
-	if (paper.data.id() == _currentId) {
+	const auto isCurrent = (paper.data.id() == _currentId)
+		&& (!Data::IsCustomWallPaper(paper.data)
+			|| paper.data.equals(_currentPaper));
+	if (isCurrent) {
 		const auto checkLeft = x + st::backgroundSize.width() - st::overviewCheckSkip - st::overviewCheck.size;
 		const auto checkTop = y + st::backgroundSize.height() - st::overviewCheckSkip - st::overviewCheck.size;
 		_check->paint(p, checkLeft, checkTop, width());

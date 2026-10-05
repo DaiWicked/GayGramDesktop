@@ -1176,9 +1176,14 @@ QImage InvertPatternImage(QImage pattern) {
 	return pattern;
 }
 
-QImage PrepareBlurredBackground(QImage image) {
+QImage PrepareBlurredBackground(QImage image, int strength) {
 	constexpr auto kSize = 900;
-	constexpr auto kRadius = 24;
+	constexpr auto kMaxRadius = 48;
+	strength = std::clamp(strength, 0, 100);
+	if (strength <= 0) {
+		return image;
+	}
+	const auto radius = std::max(1, strength * kMaxRadius / 100);
 	if (image.width() > kSize || image.height() > kSize) {
 		image = image.scaled(
 			kSize,
@@ -1186,7 +1191,7 @@ QImage PrepareBlurredBackground(QImage image) {
 			Qt::KeepAspectRatio,
 			Qt::SmoothTransformation);
 	}
-	return Images::BlurLargeImage(std::move(image), kRadius);
+	return Images::BlurLargeImage(std::move(image), radius);
 }
 
 QImage GenerateDitheredGradient(
@@ -1245,13 +1250,13 @@ ChatThemeBackground PrepareBackgroundImage(
 		? CalculateImageMonoColor(prepared)
 		: std::nullopt;
 	if (!prepared.isNull() && !data.isPattern && data.isBlurred) {
-		prepared = PrepareBlurredBackground(std::move(prepared));
+		prepared = PrepareBlurredBackground(std::move(prepared), data.blurStrength);
 	}
 	auto gradientForFill = (data.generateGradient && data.colors.size() > 1)
 		? Ui::GenerateDitheredGradient(data.colors, data.gradientRotation)
 		: QImage();
 	return ChatThemeBackground{
-		.key = data.key,
+		.key = data.key + u"/blur"_q + QString::number(data.blurStrength),
 		.prepared = prepared,
 		.preparedForTiled = PrepareImageForTiled(prepared),
 		.gradientForFill = std::move(gradientForFill),

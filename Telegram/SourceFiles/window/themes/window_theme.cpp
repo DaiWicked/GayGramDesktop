@@ -798,7 +798,10 @@ void ChatBackground::setPrepared(
 	Expects(gradient.isNull() || GoodImageFormatAndSize(gradient));
 
 	if (!prepared.isNull() && !_paper.isPattern() && _paper.isBlurred()) {
-		prepared = Ui::PrepareBlurredBackground(std::move(prepared));
+		const auto blurStrength = Core::App().settings().readPref<int>(
+			"gaygramWallpaperBlur",
+			50);
+		prepared = Ui::PrepareBlurredBackground(std::move(prepared), blurStrength);
 	}
 	if (adjustPaletteRequired()) {
 		if ((prepared.isNull() || _paper.isPattern())
