@@ -39,6 +39,15 @@ namespace {
 
 constexpr auto kBackgroundsInRow = 3;
 
+const auto kPresetGradients = std::array<QString, 6>{
+	QString("ff6b6b~ffa502"),
+	QString("0077b6~00b4d8"),
+	QString("2d6a4f~95d5b2"),
+	QString("7209b7~f72585"),
+	QString("1a1a2e~16213e"),
+	QString("ff9a9e~fecfef"),
+};
+
 QImage TakeMiddleSample(QImage original, QSize size) {
 	size *= style::DevicePixelRatio();
 	const auto from = original.size();
@@ -584,6 +593,16 @@ void BackgroundBox::Inner::updatePapers() {
 		}) | ranges::to_vector;
 		pushCustomPapers();
 		sortPapers();
+		for (const auto &slug : kPresetGradients) {
+			if (const auto preset = Data::WallPaper::FromColorsSlug(slug)) {
+				const auto exists = ranges::find_if(
+					_papers,
+					[&](const Paper &p) { return p.data.equals(*preset); });
+				if (exists == end(_papers)) {
+					_papers.insert(begin(_papers), Paper{ *preset });
+				}
+			}
+		}
 	}
 	resizeToContentAndPreload();
 }
