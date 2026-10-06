@@ -3274,11 +3274,11 @@ not_null<MainWidget*> SessionController::content() const {
 }
 
 int SessionController::filtersWidth() const {
-	return _filters ? st::windowFiltersWidth : 0;
+	return _filters ? SidebarWidthFromSettings() : 0;
 }
 
 bool SessionController::enoughSpaceForFilters() const {
-	return widget()->width() >= widget()->minimumWidth() + st::windowFiltersWidth;
+	return widget()->width() >= widget()->minimumWidth() + SidebarWidthFromSettings();
 }
 
 rpl::producer<bool> SessionController::enoughSpaceForFiltersValue() const {

@@ -16,6 +16,7 @@
 #include "base/qt/qt_tab_key.h"
 #include "base/integration.h"
 #include "base/debug_log.h"
+#include "rpl/event_stream.h"
 #include "styles/style_layers.h"
 #include "styles/style_widgets.h"
 #include "styles/palette.h"
@@ -26,6 +27,7 @@ namespace Ui {
 namespace {
 
 int g_glassBlurRadius = 24;
+rpl::event_stream<int> g_glassBlurRadiusChanges;
 constexpr auto kGlassDownscale = 4;
 constexpr auto kGlassSaturationBoost = 118;
 
@@ -86,7 +88,12 @@ constexpr auto kGlassSaturationBoost = 118;
 } // namespace
 
 void SetGlassBlurRadius(int radius) {
-	g_glassBlurRadius = std::clamp(radius, 0, 64);
+	const auto value = std::clamp(radius, 0, 64);
+	if (g_glassBlurRadius == value) {
+		return;
+	}
+	g_glassBlurRadius = value;
+	g_glassBlurRadiusChanges.fire_copy(value);
 }
 
 class LayerStackWidget::BackgroundWidget : public RpWidget {
@@ -432,6 +439,9 @@ LayerStackWidget::LayerStackWidget(QWidget *parent, ShowFactory showFactory)
 	setGeometry(parentWidget()->rect());
 	hide();
 	_background->setDoneCallback([this] { animationDone(); });
+	g_glassBlurRadiusChanges.events() | rpl::on_next([=](int) {
+		PostponeCall(this, [=] { setCacheImages(); });
+	}, lifetime());
 }
 
 void LayerWidget::setInnerFocus() {

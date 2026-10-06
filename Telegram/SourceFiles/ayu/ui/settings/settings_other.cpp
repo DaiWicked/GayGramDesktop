@@ -119,13 +119,13 @@ void BuildOtherThings(SectionBuilder &builder) {
 					.title = rpl::single(QString("侧栏宽度")),
 					.options = std::vector<QString>{
 						u"窄（56px）"_q,
-						u"中（64px，默认）"_q,
+						u"默认（72px）"_q,
 						u"宽（80px）"_q,
 					},
 					.initialSelection = initial,
 					.callback = [=](int index) {
 						const auto width = (index == 0) ? 56
-							: (index == 1) ? 64
+							: (index == 1) ? 0
 							: 80;
 						Core::App().settings().writePref<int>(
 							Core::kGayGramSidebarWidthKey, width);

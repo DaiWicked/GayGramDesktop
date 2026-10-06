@@ -33,6 +33,8 @@ namespace Window {
 class SessionController;
 class FolderFavoriteButton;
 
+[[nodiscard]] int SidebarWidthFromSettings();
+
 class FiltersMenu final {
 public:
 	FiltersMenu(
