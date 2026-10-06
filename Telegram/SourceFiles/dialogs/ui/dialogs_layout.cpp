@@ -494,6 +494,19 @@ void PaintRow(
 		p.translate(-swipeTranslation, 0);
 	}
 	p.fillRect(geometry, bg);
+	if (context.active) {
+		const auto barWidth = st::lineWidth * 3;
+		const auto barHeight = geometry.height() * 0.6;
+		const auto barRect = QRect(
+			geometry.left() + barWidth,
+			geometry.top() + (geometry.height() - barHeight) / 2,
+			barWidth,
+			barHeight);
+		auto hq = PainterHighQualityEnabler(p);
+		p.setPen(Qt::NoPen);
+		p.setBrush(st::windowBgActive);
+		p.drawRoundedRect(barRect, barWidth / 2., barWidth / 2.);
+	}
 	if (!(flags & Flag::TopicJumpRipple)) {
 		auto ripple = context.active
 			? st::dialogsRippleBgActive

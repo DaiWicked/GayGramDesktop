@@ -482,6 +482,14 @@ int RoundButton::contentWidth() const {
 void RoundButton::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
+	constexpr auto kPressedScale = 0.97;
+	if (isDown() && !isDisabled()) {
+		const auto center = QPointF(width() / 2., height() / 2.);
+		p.translate(center);
+		p.scale(kPressedScale, kPressedScale);
+		p.translate(-center);
+	}
+
 	auto innerWidth = contentWidth();
 	auto rounded = rect().marginsRemoved(_st.padding);
 	if (_fullWidthOverride < 0) {

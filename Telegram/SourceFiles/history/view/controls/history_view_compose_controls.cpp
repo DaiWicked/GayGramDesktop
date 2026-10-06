@@ -2323,6 +2323,11 @@ void ComposeControls::init() {
 		paintBackground(p, _wrap->rect(), clip);
 	}, _wrap->lifetime());
 
+	_field->focusedChanges(
+	) | rpl::on_next([=] {
+		_wrap->update();
+	}, _wrap->lifetime());
+
 	_header->editMsgIdValue(
 	) | rpl::on_next([=](const auto &id) {
 		unregisterDraftSources();
@@ -4683,6 +4688,15 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 				- _st.starsSkip);
 		}
 		p.drawRoundedRect(full, _st.radius, _st.radius);
+		if (focused()) {
+			p.setBrush(Qt::NoBrush);
+			p.setPen(QPen(st::windowBgActive, st::lineWidth));
+			const auto inset = st::lineWidth / 2.;
+			p.drawRoundedRect(
+				full.marginsRemoved({ int(inset), int(inset), int(inset), int(inset) }),
+				_st.radius,
+				_st.radius);
+		}
 	} else {
 		p.fillRect(clip, _st.bg);
 	}
