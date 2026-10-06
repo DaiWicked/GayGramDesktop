@@ -25,7 +25,7 @@
 namespace Ui {
 namespace {
 
-constexpr auto kGlassBlurRadius = 24;
+int g_glassBlurRadius = 24;
 constexpr auto kGlassDownscale = 4;
 constexpr auto kGlassSaturationBoost = 118;
 
@@ -66,7 +66,7 @@ constexpr auto kGlassSaturationBoost = 118;
 		Qt::SmoothTransformation);
 	image = Images::BlurLargeImage(
 		std::move(image),
-		std::max(1, kGlassBlurRadius * ratio / kGlassDownscale));
+		std::max(1, g_glassBlurRadius * ratio / kGlassDownscale));
 	image = BoostGlassSaturation(std::move(image));
 	image = image.scaled(
 		full,
@@ -84,6 +84,10 @@ constexpr auto kGlassSaturationBoost = 118;
 }
 
 } // namespace
+
+void SetGlassBlurRadius(int radius) {
+	g_glassBlurRadius = std::clamp(radius, 0, 64);
+}
 
 class LayerStackWidget::BackgroundWidget : public RpWidget {
 public:

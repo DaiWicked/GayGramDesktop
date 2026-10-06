@@ -88,6 +88,7 @@ private:
 	rpl::variable<bool> _includeMuted;
 	FilterId _activeFilterId = 0;
 	int _reordering = 0;
+	int _sidebarWidth = 0;
 	bool _ignoreRefresh = false;
 	bool _waitingSuggested = false;
 

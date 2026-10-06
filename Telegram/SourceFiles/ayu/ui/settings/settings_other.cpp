@@ -24,6 +24,7 @@
 #include "ui/vertical_list.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/boxes/single_choice_box.h"
+#include "ui/layers/layer_widget.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/buttons.h"
 #include "ui/wrap/vertical_layout.h"
@@ -63,6 +64,72 @@ void BuildOtherThings(SectionBuilder &builder) {
 						} else {
 							AyuLanguage::currentInstance()->resetLocalChinese();
 						}
+						Core::Restart();
+					},
+				});
+			}));
+		},
+	});
+	builder.addButton({
+		.id = u"ayu/gaygramGlassStrength"_q,
+		.title = rpl::single(QString("弹窗玻璃强度")),
+		.icon = { &st::menuIconSettings },
+		.onClick = [=] {
+			const auto current = Core::App().settings().readPref<int>(
+				Core::kGayGramGlassStrengthKey, 0);
+			const auto initial = (current <= 0) ? 1
+				: (current <= 16) ? 0
+				: (current <= 32) ? 1
+				: 2;
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				SingleChoiceBox(box, {
+					.title = rpl::single(QString("弹窗玻璃强度")),
+					.options = std::vector<QString>{
+						u"弱（12px）"_q,
+						u"中（24px，默认）"_q,
+						u"强（40px）"_q,
+					},
+					.initialSelection = initial,
+					.callback = [=](int index) {
+						const auto radius = (index == 0) ? 12
+							: (index == 1) ? 24
+							: 40;
+						Core::App().settings().writePref<int>(
+							Core::kGayGramGlassStrengthKey, radius);
+						Ui::SetGlassBlurRadius(radius);
+						controller->showToast(tr::lng_box_done(tr::now));
+					},
+				});
+			}));
+		},
+	});
+	builder.addButton({
+		.id = u"ayu/gaygramSidebarWidth"_q,
+		.title = rpl::single(QString("侧栏宽度")),
+		.icon = { &st::menuIconChats },
+		.onClick = [=] {
+			const auto current = Core::App().settings().readPref<int>(
+				Core::kGayGramSidebarWidthKey, 0);
+			const auto initial = (current <= 0) ? 1
+				: (current <= 56) ? 0
+				: (current <= 72) ? 1
+				: 2;
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				SingleChoiceBox(box, {
+					.title = rpl::single(QString("侧栏宽度")),
+					.options = std::vector<QString>{
+						u"窄（56px）"_q,
+						u"中（64px，默认）"_q,
+						u"宽（80px）"_q,
+					},
+					.initialSelection = initial,
+					.callback = [=](int index) {
+						const auto width = (index == 0) ? 56
+							: (index == 1) ? 64
+							: 80;
+						Core::App().settings().writePref<int>(
+							Core::kGayGramSidebarWidthKey, width);
+						controller->showToast(tr::lng_box_done(tr::now));
 						Core::Restart();
 					},
 				});

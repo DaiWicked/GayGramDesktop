@@ -110,6 +110,9 @@ FiltersMenu::FiltersMenu(
 	_scroll.setOwnedWidget(
 		object_ptr<Ui::VerticalLayout>(&_scroll))) {
 
+	_sidebarWidth = Core::App().settings().readPref<int>(
+		Core::kGayGramSidebarWidthKey, 0);
+
 	_drag.timer.setCallback([=] {
 		if (_drag.filterId >= 0) {
 			_session->setActiveChatsFilter(_drag.filterId);
@@ -138,7 +141,9 @@ void FiltersMenu::setup() {
 
 	_parent->heightValue(
 	) | rpl::on_next([=](int height) {
-		const auto width = st::windowFiltersWidth;
+		const auto width = (_sidebarWidth > 0)
+			? _sidebarWidth
+			: st::windowFiltersWidth;
 		_outer.setGeometry({ 0, 0, width, height });
 		_menu.resizeToWidth(width);
 		_menu.move(0, 0);
