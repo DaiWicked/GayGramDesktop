@@ -63,6 +63,14 @@ settings.local.json
 .env.local
 .env.*.local
 
+# Sensitive files (keys, certificates, secrets)
+*.key
+*.pem
+*.pfx
+*.p12
+secrets.*
+*_secret.*
+
 # Cursor IDE local settings (but keep .cursor/rules/)
 .cursor/*
 !.cursor/rules/

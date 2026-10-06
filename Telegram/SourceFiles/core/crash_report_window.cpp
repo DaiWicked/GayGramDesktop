@@ -637,7 +637,12 @@ void LastCrashedWindow::checkingFinished() {
 		}
 	}
 
-	_sendReply = _sendManager.post(QNetworkRequest(u""_q), multipart);
+	const auto reportUrl = u""_q;
+	if (reportUrl.isEmpty()) {
+		sendingError(QNetworkReply::UnknownServerError);
+		return;
+	}
+	_sendReply = _sendManager.post(QNetworkRequest(reportUrl), multipart);
 	multipart->setParent(_sendReply);
 
 	connect(
