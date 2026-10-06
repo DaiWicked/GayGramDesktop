@@ -26,7 +26,7 @@
 namespace Ui {
 namespace {
 
-int g_glassBlurRadius = 24;
+int g_glassBlurRadius = 20;
 rpl::event_stream<int> g_glassBlurRadiusChanges;
 constexpr auto kGlassDownscale = 4;
 constexpr auto kGlassSaturationBoost = 118;

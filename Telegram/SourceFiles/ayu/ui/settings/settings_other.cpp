@@ -78,22 +78,22 @@ void BuildOtherThings(SectionBuilder &builder) {
 			const auto current = Core::App().settings().readPref<int>(
 				Core::kGayGramGlassStrengthKey, 0);
 			const auto initial = (current <= 0) ? 1
-				: (current <= 16) ? 0
-				: (current <= 32) ? 1
+				: (current <= 10) ? 0
+				: (current <= 35) ? 1
 				: 2;
 			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
 				SingleChoiceBox(box, {
 					.title = rpl::single(QString("弹窗玻璃强度")),
 					.options = std::vector<QString>{
-						u"弱（12px）"_q,
-						u"中（24px，默认）"_q,
-						u"强（40px）"_q,
+						u"弱（6px）"_q,
+						u"中（20px，默认）"_q,
+						u"强（56px）"_q,
 					},
 					.initialSelection = initial,
 					.callback = [=](int index) {
-						const auto radius = (index == 0) ? 12
-							: (index == 1) ? 24
-							: 40;
+						const auto radius = (index == 0) ? 6
+							: (index == 1) ? 20
+							: 56;
 						Core::App().settings().writePref<int>(
 							Core::kGayGramGlassStrengthKey, radius);
 						Ui::SetGlassBlurRadius(radius);
