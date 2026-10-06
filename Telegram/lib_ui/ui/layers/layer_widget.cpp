@@ -15,6 +15,7 @@
 #include "ui/round_rect.h"
 #include "base/qt/qt_tab_key.h"
 #include "base/integration.h"
+#include "base/debug_log.h"
 #include "styles/style_layers.h"
 #include "styles/style_widgets.h"
 #include "styles/palette.h"
@@ -52,6 +53,7 @@ constexpr auto kGlassSaturationBoost = 118;
 	if (cache.isNull()) {
 		return std::move(cache);
 	}
+	const auto start = crl::now();
 	const auto ratio = style::DevicePixelRatio();
 	auto image = cache.toImage();
 	const auto full = image.size();
@@ -71,6 +73,13 @@ constexpr auto kGlassSaturationBoost = 118;
 		Qt::IgnoreAspectRatio,
 		Qt::SmoothTransformation);
 	image.setDevicePixelRatio(ratio);
+	const auto elapsed = crl::now() - start;
+	if (elapsed > 16) {
+		LOG(("Glass blur: %1ms for %2x%3")
+			.arg(elapsed)
+			.arg(full.width())
+			.arg(full.height()));
+	}
 	return QPixmap::fromImage(std::move(image));
 }
 
