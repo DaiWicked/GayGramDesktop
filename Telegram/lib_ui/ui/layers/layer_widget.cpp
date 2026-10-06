@@ -90,9 +90,11 @@ constexpr auto kGlassSaturationBoost = 118;
 void SetGlassBlurRadius(int radius) {
 	const auto value = std::clamp(radius, 0, 64);
 	if (g_glassBlurRadius == value) {
+		LOG(("Glass: SetGlassBlurRadius called with same value %1, skip").arg(value));
 		return;
 	}
 	g_glassBlurRadius = value;
+	LOG(("Glass: SetGlassBlurRadius changed to %1, firing event").arg(value));
 	g_glassBlurRadiusChanges.fire_copy(value);
 }
 
@@ -439,8 +441,13 @@ LayerStackWidget::LayerStackWidget(QWidget *parent, ShowFactory showFactory)
 	setGeometry(parentWidget()->rect());
 	hide();
 	_background->setDoneCallback([this] { animationDone(); });
-	g_glassBlurRadiusChanges.events() | rpl::on_next([=](int) {
-		PostponeCall(this, [=] { setCacheImages(); });
+	g_glassBlurRadiusChanges.events() | rpl::on_next([=](int value) {
+		LOG(("Glass: event received, radius=%1, posting setCacheImages").arg(value));
+		PostponeCall(this, [=] {
+			LOG(("Glass: setCacheImages called"));
+			setCacheImages();
+			update();
+		});
 	}, lifetime());
 }
 
