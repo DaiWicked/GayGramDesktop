@@ -444,58 +444,63 @@ int main(int argc, char *argv[])
 
 	uint32 siglen = 0;
 
-	cout << "Signing..\n";
-	RSA *prKey = [] {
-		const auto bio = makeBIO(
-			const_cast<char*>(
-				(BetaChannel || AlphaVersion)
-					? PrivateBetaKey
-					: PrivateKey),
-			-1);
-		return PEM_read_bio_RSAPrivateKey(bio.get(), 0, 0, 0);
-	}();
-	if (!prKey) {
-		cout << "Could not read RSA private key!\n";
-		return -1;
-	}
-	if (RSA_size(prKey) != hSigLen) {
-		cout << "Bad private key, size: " << RSA_size(prKey) << "\n";
+	const auto *privKeyStr = (BetaChannel || AlphaVersion)
+		? PrivateBetaKey
+		: PrivateKey;
+	if (privKeyStr && *privKeyStr) {
+		cout << "Signing..\n";
+		RSA *prKey = [&] {
+			const auto bio = makeBIO(
+				const_cast<char*>(privKeyStr),
+				-1);
+			return PEM_read_bio_RSAPrivateKey(bio.get(), 0, 0, 0);
+		}();
+		if (!prKey) {
+			cout << "Could not read RSA private key!\n";
+			return -1;
+		}
+		if (RSA_size(prKey) != hSigLen) {
+			cout << "Bad private key, size: " << RSA_size(prKey) << "\n";
+			RSA_free(prKey);
+			return -1;
+		}
+		if (RSA_sign(NID_sha1, (const uchar*)(compressed.constData() + hSigLen), hShaLen, (uchar*)(compressed.data()), &siglen, prKey) != 1) { // count signature
+			cout << "Signing failed!\n";
+			RSA_free(prKey);
+			return -1;
+		}
 		RSA_free(prKey);
-		return -1;
-	}
-	if (RSA_sign(NID_sha1, (const uchar*)(compressed.constData() + hSigLen), hShaLen, (uchar*)(compressed.data()), &siglen, prKey) != 1) { // count signature
-		cout << "Signing failed!\n";
-		RSA_free(prKey);
-		return -1;
-	}
-	RSA_free(prKey);
 
-	if (siglen != hSigLen) {
-		cout << "Bad signature length: " << siglen << "\n";
-		return -1;
-	}
+		if (siglen != hSigLen) {
+			cout << "Bad signature length: " << siglen << "\n";
+			return -1;
+		}
 
-	cout << "Checking signature..\n";
-	RSA *pbKey = [] {
-		const auto bio = makeBIO(
-			const_cast<char*>(
-				(BetaChannel || AlphaVersion)
-					? PublicBetaKey
-					: PublicKey),
-			-1);
-		return PEM_read_bio_RSAPublicKey(bio.get(), 0, 0, 0);
-	}();
-	if (!pbKey) {
-		cout << "Could not read RSA public key!\n";
-		return -1;
-	}
-	if (RSA_verify(NID_sha1, (const uchar*)(compressed.constData() + hSigLen), hShaLen, (const uchar*)(compressed.constData()), siglen, pbKey) != 1) { // verify signature
+		cout << "Checking signature..\n";
+		RSA *pbKey = [&] {
+			const auto bio = makeBIO(
+				const_cast<char*>(
+					(BetaChannel || AlphaVersion)
+						? PublicBetaKey
+						: PublicKey),
+				-1);
+			return PEM_read_bio_RSAPublicKey(bio.get(), 0, 0, 0);
+		}();
+		if (!pbKey) {
+			cout << "Could not read RSA public key!\n";
+			return -1;
+		}
+		if (RSA_verify(NID_sha1, (const uchar*)(compressed.constData() + hSigLen), hShaLen, (const uchar*)(compressed.constData()), siglen, pbKey) != 1) { // verify signature
+			RSA_free(pbKey);
+			cout << "Signature verification failed!\n";
+			return -1;
+		}
+		cout << "Signature verified!\n";
 		RSA_free(pbKey);
-		cout << "Signature verification failed!\n";
-		return -1;
+	} else {
+		cout << "No private key, skipping signature..\n";
+		memset(compressed.data(), 0, hSigLen);
 	}
-	cout << "Signature verified!\n";
-	RSA_free(pbKey);
 #ifdef Q_OS_WIN
 	QString outName((targetwinarm ? QString("tarm64upd%1") : targetwin64 ? QString("tx64upd%1") : QString("tupdate%1")).arg(AlphaVersion ? AlphaVersion : version));
 #elif defined Q_OS_MAC

@@ -293,7 +293,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_flood_error" = "Too many tries. Please try again later.";
 "lng_edit_error" = "You can't edit this message.";
 "lng_error_phone_flood" = "Sorry, you have deleted and re-created your account too many times recently. Please wait for a few days before signing up again.";
-"lng_error_start_minimized_passcoded" = "You have set a local passcode, so Telegram Desktop can't be launched minimized; it will ask you to enter your passcode before it can start working.";
+"lng_error_start_minimized_passcoded" = "You have set a local passcode, so GayGram Desktop can't be launched minimized; it will ask you to enter your passcode before it can start working.";
 "lng_error_public_groups_denied" = "Unfortunately, you are banned from participating in public groups.\n{more_info}";
 "lng_error_cant_add_member" = "Sorry, you can't add the bot to this group. Ask a group admin to do it.";
 "lng_error_cant_add_bot" = "Sorry, this bot can't be added to groups.";
@@ -337,7 +337,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_proxy_box_username" = "Username";
 "lng_proxy_box_password" = "Password";
 "lng_proxy_invalid" = "The proxy link is invalid.";
-"lng_proxy_unsupported" = "Your Telegram Desktop version doesn't support this proxy type or the proxy link is invalid. Please update Telegram Desktop to the latest version.";
+"lng_proxy_unsupported" = "Your GayGram Desktop version doesn't support this proxy type or the proxy link is invalid. Please update GayGram Desktop to the latest version.";
 "lng_proxy_incorrect_secret" = "This proxy link uses invalid **secret** parameter. Please contact the proxy provider and ask him to update MTProxy source code and configure it with a correct **secret** value. Then let him provide a new link.";
 "lng_proxy_check_ip_warning_title" = "Warning";
 "lng_proxy_check_ip_warning" = "This will expose your IP address to the admin of the proxy server.";
@@ -382,7 +382,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_edit_caption_attach" = "Sorry, you can't attach new media while editing a message.";
 "lng_edit_caption_voice" = "Sorry, you can't edit messages when you have an unsent voice message.";
 
-"lng_intro_about" = "Welcome to the official Telegram Desktop app.\nIt's fast and secure.";
+"lng_intro_about" = "Welcome to GayGram Desktop.\nIt's fast and secure.";
 "lng_start_msgs" = "Start Messaging";
 
 "lng_intro_next" = "Next";
@@ -655,7 +655,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_languages_none" = "No languages found.";
 "lng_languages_count#one" = "{count} language";
 "lng_languages_count#other" = "{count} languages";
-"lng_sure_save_language" = "Telegram will restart in order to change the language";
+"lng_sure_save_language" = "GayGram will restart in order to change the language";
 "lng_settings_update_automatically" = "Update automatically";
 "lng_settings_install_beta" = "Install beta versions";
 "lng_settings_current_version" = "Version {version}";
@@ -677,11 +677,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_title_total_count" = "Total unread count";
 "lng_settings_native_frame" = "Use system window frame";
 "lng_settings_qt_frame" = "Use Qt window frame";
-"lng_settings_auto_start" = "Launch Telegram when system starts";
+"lng_settings_auto_start" = "Launch GayGram when system starts";
 "lng_settings_start_min" = "Launch minimized";
 "lng_settings_auto_start_disabled_uwp" = "Starting with the system was disabled in Windows Settings.\n\nPlease enable Telegram Desktop in the Startup Apps Settings.";
 "lng_settings_open_system_settings" = "Open Settings";
-"lng_settings_add_sendto" = "Place Telegram in \"Send to\" menu";
+"lng_settings_add_sendto" = "Place GayGram in \"Send to\" menu";
 "lng_settings_mac_warn_before_quit" = "Show warning before quitting with {text}";
 "lng_settings_mac_round_icon" = "Round application icon";
 
@@ -1096,7 +1096,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_theme_reverting#other" = "Reverting to the old theme in {count} seconds.";
 "lng_theme_keep_changes" = "Keep changes";
 "lng_theme_revert" = "Revert";
-"lng_theme_no_desktop" = "Sorry, this theme doesn't include a version for Telegram Desktop.";
+"lng_theme_no_desktop" = "Sorry, this theme doesn't include a version for GayGram Desktop.";
 "lng_theme_share" = "Share";
 "lng_theme_edit" = "Edit";
 "lng_theme_delete" = "Delete";
@@ -1128,7 +1128,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_download_path_temp" = "Temp folder";
 "lng_download_path_default" = "Default folder";
 "lng_download_path_header" = "Choose download path";
-"lng_download_path_default_radio" = "Telegram folder in system «Downloads»";
+"lng_download_path_default_radio" = "GayGram folder in system «Downloads»";
 "lng_download_path_temp_radio" = "Temp folder, cleared on logout or uninstall";
 "lng_download_path_dir_radio" = "Custom folder, cleared only manually";
 "lng_download_path_choose" = "Choose download path";
@@ -1168,11 +1168,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_local_storage_clear" = "Clear all";
 "lng_local_storage_clear_selected" = "Clear selected";
 "lng_local_storage_clearing" = "Clearing...";
-"lng_local_storage_device_telegram" = "Telegram cache";
+"lng_local_storage_device_telegram" = "GayGram cache";
 "lng_local_storage_device_other" = "Other data";
 "lng_local_storage_device_free" = "Free";
 "lng_local_storage_device_total" = "Total";
-"lng_local_storage_device_usage" = "Telegram uses {percent} of your device storage.";
+"lng_local_storage_device_usage" = "GayGram uses {percent} of your device storage.";
 "lng_local_storage_clearing_about" = "Please keep this window open while the cache is being cleared.";
 "lng_local_storage_cleared" = "{size} freed on your device!";
 "lng_local_storage_about" = "All media will stay in the Telegram cloud and can be re-downloaded if you need them again.";
@@ -1192,10 +1192,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_passcode_enter_first" = "Enter a passcode";
 "lng_passcode_enter_new" = "Enter new passcode";
 "lng_passcode_confirm_new" = "Re-enter new passcode";
-"lng_passcode_about" = "When a local passcode is set, a lock icon appears at the top of your chat list. Click it to lock Telegram Desktop.\n\nNote: if you forget your local passcode, you'll need to log out of Telegram Desktop and log in again.";
+"lng_passcode_about" = "When a local passcode is set, a lock icon appears at the top of your chat list. Click it to lock GayGram Desktop.\n\nNote: if you forget your local passcode, you'll need to log out of GayGram Desktop and log in again.";
 "lng_passcode_about1" = "When a local passcode is set, a lock icon appears at the top of your chat list.";
-"lng_passcode_about2" = "Click it to lock Telegram Desktop.";
-"lng_passcode_about3" = "Note: if you forget your passcode, you'll need to log out of Telegram Desktop and log in again.";
+"lng_passcode_about2" = "Click it to lock GayGram Desktop.";
+"lng_passcode_about3" = "Note: if you forget your passcode, you'll need to log out of GayGram Desktop and log in again.";
 "lng_passcode_differ" = "Passcodes are different";
 "lng_passcode_wrong" = "Wrong passcode";
 "lng_passcode_is_same" = "Passcode was not changed";
@@ -1207,7 +1207,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_passcode_touchid" = "You need to enter your passcode\nbefore you can use Touch ID.";
 "lng_passcode_applewatch" = "You need to enter your passcode\nbefore you can use Watch to unlock.";
 "lng_passcode_systempwd" = "You need to enter your passcode\nbefore you can use system password.";
-"lng_passcode_winhello_unlock" = "Telegram wants to unlock with Windows Hello.";
+"lng_passcode_winhello_unlock" = "GayGram wants to unlock with Windows Hello.";
 "lng_passcode_touchid_unlock" = "unlock";
 "lng_passcode_create_button" = "Save Passcode";
 "lng_passcode_check_button" = "Submit";
@@ -1306,7 +1306,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_blocked_users" = "Blocked users";
 "lng_settings_no_blocked_users" = "None";
 "lng_settings_show_sessions" = "Active sessions";
-"lng_settings_export_data" = "Export Telegram data";
+"lng_settings_export_data" = "Export GayGram data";
 "lng_settings_destroy_if" = "If away for...";
 
 "lng_settings_terminate_title" = "Terminate old sessions";
@@ -1322,10 +1322,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_ask_sure" = "Please note that Telegram Support is done by volunteers. We try to respond as quickly as possible, but it may take a while.\n\nPlease take a look at the Telegram FAQ: it has important troubleshooting tips and answers to most questions.";
 "lng_settings_faq_button" = "Go to FAQ";
 "lng_settings_ask_ok" = "Ask a Volunteer";
-"lng_settings_faq" = "Telegram FAQ";
+"lng_settings_faq" = "GayGram FAQ";
 "lng_settings_faq_subtitle" = "FAQ";
 "lng_settings_faq_link" = "https://telegram.org/faq#general-questions";
-"lng_settings_features" = "Telegram Features";
+"lng_settings_features" = "GayGram Features";
 "lng_settings_credits" = "My Stars";
 "lng_settings_currency" = "My Grams";
 "lng_settings_logout" = "Log out";
@@ -1354,7 +1354,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_passkeys_none_button_unsupported" = "Unsupported";
 "lng_settings_passkeys_created" = "Created {date}";
 "lng_settings_passkeys_last_used" = "Last used {date}";
-"lng_settings_passkeys_unsigned_error" = "Passkeys are not available in unsigned builds. Please use an official signed version of Telegram Desktop.";
+"lng_settings_passkeys_unsigned_error" = "Passkeys are not available in unsigned builds. Please use an official signed version of GayGram Desktop.";
 "lng_settings_passkey_unknown" = "Passkey";
 
 "lng_passkey_touch" = "Touch your security key";
@@ -3116,7 +3116,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_cancel_edit_post_yes" = "Yes";
 "lng_cancel_edit_post_no" = "No";
 
-"lng_bot_share_location_unavailable" = "Sorry, location sharing is currently unavailable in Telegram Desktop.";
+"lng_bot_share_location_unavailable" = "Sorry, location sharing is currently unavailable in GayGram Desktop.";
 "lng_bot_share_phone" = "Do you want to share your phone number with this bot?";
 "lng_bot_share_phone_confirm" = "Share";
 "lng_bot_allow_write_title" = "Allow messaging";
@@ -5198,8 +5198,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_bot_close_warning_sure" = "Close anyway";
 "lng_bot_add_to_side_menu" = "{bot} asks your permission to be added as an option to your main menu so you can access it any time.";
 "lng_bot_add_to_side_menu_done" = "Bot added to the main menu.";
-"lng_bot_no_scan_qr" = "QR Codes for bots are not supported on Desktop. Please use one of Telegram's mobile apps.";
-"lng_bot_no_share_story" = "Sharing to Stories is not supported on Desktop. Please use one of Telegram's mobile apps.";
+"lng_bot_no_scan_qr" = "QR Codes for bots are not supported on Desktop. Please use one of GayGram's mobile apps.";
+"lng_bot_no_share_story" = "Sharing to Stories is not supported on Desktop. Please use one of GayGram's mobile apps.";
 "lng_bot_emoji_status_confirm" = "Confirm";
 "lng_bot_emoji_status_title" = "Set Emoji Status";
 "lng_bot_emoji_status_text" = "Do you want to set this emoji status suggested by {bot}?";
@@ -6084,7 +6084,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_theme_preview_users#one" = "{count} person is using this theme";
 "lng_theme_preview_users#other" = "{count} people are using this theme";
 
-"lng_new_version_wrap" = "Telegram Desktop was updated to version {version}\n\n{changes}\n\nFull version history is available here:\n{link}";
+"lng_new_version_wrap" = "GayGram Desktop was updated to version {version}\n\n{changes}\n\nFull version history is available here:\n{link}";
 "lng_new_version_minor" = "— Bug fixes and other minor improvements";
 
 "lng_menu_insert_unicode" = "Insert Unicode control character";
