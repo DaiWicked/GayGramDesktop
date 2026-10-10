@@ -28,7 +28,7 @@ namespace {
 
 int g_glassBlurRadius = 20;
 rpl::event_stream<int> g_glassBlurRadiusChanges;
-constexpr auto kGlassDownscale = 4;
+constexpr auto kGlassDownscale = 2;
 constexpr auto kGlassSaturationBoost = 118;
 
 [[nodiscard]] QImage BoostGlassSaturation(QImage &&image) {
