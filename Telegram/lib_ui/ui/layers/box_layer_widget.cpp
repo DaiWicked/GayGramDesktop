@@ -141,18 +141,25 @@ void BoxLayerWidget::paintEvent(QPaintEvent *e) {
 	}
 	{
 		auto hq = PainterHighQualityEnabler(p);
-		auto gradient = QLinearGradient(0, 0, width(), height());
-		gradient.setColorAt(0.0, QColor(255, 255, 255, 180));
-		gradient.setColorAt(0.3, QColor(255, 255, 255, 60));
-		gradient.setColorAt(0.5, QColor(255, 255, 255, 0));
-		gradient.setColorAt(0.7, QColor(0, 0, 0, 40));
-		gradient.setColorAt(1.0, QColor(0, 0, 0, 120));
+		const auto half = st::glassHighlightWidth / 2.;
+		const auto r = QRectF(rect()).adjusted(half, half, -half, -half);
 		p.setBrush(Qt::NoBrush);
-		p.setPen(QPen(QBrush(gradient), st::glassHighlightWidth));
-		p.drawRoundedRect(
-			QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5),
-			st::boxRadius,
-			st::boxRadius);
+		{
+			auto g = QLinearGradient(0, 0, 0, height());
+			g.setColorAt(0.0, st::glassHighlightFg->c);
+			g.setColorAt(0.5, QColor(255, 255, 255, 0));
+			g.setColorAt(1.0, QColor(255, 255, 255, 0));
+			p.setPen(QPen(QBrush(g), st::glassHighlightWidth));
+			p.drawRoundedRect(r, st::boxRadius, st::boxRadius);
+		}
+		{
+			auto g = QLinearGradient(0, 0, 0, height());
+			g.setColorAt(0.0, QColor(0, 0, 0, 0));
+			g.setColorAt(0.5, QColor(0, 0, 0, 0));
+			g.setColorAt(1.0, QColor(0, 0, 0, 80));
+			p.setPen(QPen(QBrush(g), st::glassHighlightWidth));
+			p.drawRoundedRect(r, st::boxRadius, st::boxRadius);
+		}
 	}
 	if (!_additionalTitle.current().isEmpty()
 		&& clip.intersects(QRect(0, 0, width(), titleHeight()))) {

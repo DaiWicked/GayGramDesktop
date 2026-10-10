@@ -148,8 +148,6 @@ void FiltersMenu::setup() {
 		p.setPen(Qt::NoPen);
 		p.setBrush(st::windowFiltersButton.textBg);
 		p.drawRect(clip);
-		p.setPen(QPen(QColor(255, 255, 255, 25), 1));
-		p.drawLine(_outer.width() - 1, 0, _outer.width() - 1, _outer.height());
 	}, _outer.lifetime());
 
 	_parent->heightValue(

@@ -4690,13 +4690,15 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 		p.drawRoundedRect(full, _st.radius, _st.radius);
 		{
 			auto hq2 = PainterHighQualityEnabler(p);
-			auto rim = QLinearGradient(0, full.top(), 0, full.top() + 2);
-			rim.setColorAt(0.0, QColor(255, 255, 255, 50));
-			rim.setColorAt(1.0, QColor(255, 255, 255, 0));
+			const auto half = st::glassHighlightWidth / 2.;
+			auto rim = QLinearGradient(0, full.top(), 0, full.bottom());
+			rim.setColorAt(0.0, st::glassHighlightFg->c);
+			rim.setColorAt(0.5, QColor(255, 255, 255, 0));
+			rim.setColorAt(1.0, QColor(0, 0, 0, 40));
 			p.setBrush(Qt::NoBrush);
-			p.setPen(QPen(QBrush(rim), 1));
+			p.setPen(QPen(QBrush(rim), st::glassHighlightWidth));
 			p.drawRoundedRect(
-				QRectF(full).adjusted(0.5, 0.5, -0.5, -0.5),
+				QRectF(full).adjusted(half, half, -half, -half),
 				_st.radius,
 				_st.radius);
 		}
