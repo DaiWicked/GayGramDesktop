@@ -26,7 +26,7 @@
 namespace Ui {
 namespace {
 
-int g_glassBlurRadius = 20;
+int g_glassBlurRadius = 24;
 rpl::event_stream<int> g_glassBlurRadiusChanges;
 constexpr auto kGlassDownscale = 2;
 constexpr auto kGlassSaturationBoost = 118;
@@ -53,6 +53,9 @@ constexpr auto kGlassSaturationBoost = 118;
 
 [[nodiscard]] QPixmap BlurGlassCache(QPixmap &&cache) {
 	if (cache.isNull()) {
+		return std::move(cache);
+	}
+	if (g_glassBlurRadius <= 0) {
 		return std::move(cache);
 	}
 	const auto start = crl::now();
@@ -88,7 +91,7 @@ constexpr auto kGlassSaturationBoost = 118;
 } // namespace
 
 void SetGlassBlurRadius(int radius) {
-	const auto value = std::clamp(radius, 0, 64);
+	const auto value = std::clamp(radius, 0, 80);
 	if (g_glassBlurRadius == value) {
 		LOG(("Glass: SetGlassBlurRadius called with same value %1, skip").arg(value));
 		return;

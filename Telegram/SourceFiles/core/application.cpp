@@ -509,7 +509,7 @@ void Application::startSettingsAndBackground() {
 	checkSystemDarkMode();
 	Ui::SetScreenReaderModeDisabled(
 		settings().readPref<bool>(kScreenReaderModeDisabledKey));
-	const auto glassStrength = settings().readPref<int>(kGayGramGlassStrengthKey, 20);
+	const auto glassStrength = settings().readPref<int>(kGayGramGlassStrengthKey, 24);
 	Ui::SetGlassBlurRadius(glassStrength);
 }
 

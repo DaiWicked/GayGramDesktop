@@ -76,23 +76,23 @@ void BuildOtherThings(SectionBuilder &builder) {
 		.icon = { &st::menuIconSettings },
 		.onClick = [=] {
 			const auto current = Core::App().settings().readPref<int>(
-				Core::kGayGramGlassStrengthKey, 20);
+				Core::kGayGramGlassStrengthKey, 24);
 			const auto initial = (current <= 0) ? 0
-				: (current <= 10) ? 0
-				: (current <= 35) ? 1
+				: (current <= 12) ? 0
+				: (current <= 40) ? 1
 				: 2;
 			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
 				SingleChoiceBox(box, {
 					.title = rpl::single(QString("弹窗玻璃强度")),
 					.options = std::vector<QString>{
 						u"关（0px）"_q,
-						u"中（20px，默认）"_q,
+						u"中（24px，默认）"_q,
 						u"强（56px）"_q,
 					},
 					.initialSelection = initial,
 					.callback = [=](int index) {
 						const auto radius = (index == 0) ? 0
-							: (index == 1) ? 20
+							: (index == 1) ? 24
 							: 56;
 						Core::App().settings().writePref<int>(
 							Core::kGayGramGlassStrengthKey, radius);
