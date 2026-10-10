@@ -109,6 +109,23 @@ public:
 		_doneCallback = std::move(callback);
 	}
 
+	void setCacheRefreshCallback(Fn<void()> callback) {
+		_refreshCache = std::move(callback);
+	}
+
+	void requestCacheRefresh() {
+		if (_refreshPending || !_refreshCache) {
+			return;
+		}
+		_refreshPending = true;
+		crl::on_main(this, [=] {
+			_refreshPending = false;
+			if (_refreshCache) {
+				_refreshCache();
+			}
+		});
+	}
+
 	void setLayerBoxes(const QRect &specialLayerBox, const QRect &layerBox);
 	void setCacheImages(
 		QPixmap &&bodyCache,
@@ -128,6 +145,7 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent *e) override;
+	void resizeEvent(QResizeEvent *e) override;
 
 private:
 	bool isShown() const {
@@ -147,6 +165,8 @@ private:
 	QPixmap _layerCache;
 
 	Fn<void()> _doneCallback;
+	Fn<void()> _refreshCache;
+	bool _refreshPending = false;
 
 	bool _wasAnimating = false;
 	bool _inPaintEvent = false;
@@ -240,9 +260,19 @@ void LayerStackWidget::BackgroundWidget::checkIfDone() {
 	}
 	_wasAnimating = false;
 	_mainMenuCache = _specialLayerCache = _layerCache = QPixmap();
-	removeBodyCache();
+	if (!isShown()) {
+		removeBodyCache();
+	}
 	if (_doneCallback) {
 		_doneCallback();
+	}
+}
+
+void LayerStackWidget::BackgroundWidget::resizeEvent(QResizeEvent *e) {
+	RpWidget::resizeEvent(e);
+	if (!_bodyCache.isNull()) {
+		removeBodyCache();
+		requestCacheRefresh();
 	}
 }
 
@@ -444,6 +474,7 @@ LayerStackWidget::LayerStackWidget(QWidget *parent, ShowFactory showFactory)
 	setGeometry(parentWidget()->rect());
 	hide();
 	_background->setDoneCallback([this] { animationDone(); });
+	_background->setCacheRefreshCallback([this] { setCacheImages(); });
 	g_glassBlurRadiusChanges.events() | rpl::on_next([=](int value) {
 		LOG(("Glass: event received, radius=%1, posting setCacheImages").arg(value));
 		PostponeCall(this, [=] {
