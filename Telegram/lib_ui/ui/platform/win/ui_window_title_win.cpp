@@ -146,7 +146,21 @@ void TitleWidget::paintEvent(QPaintEvent *e) {
 	const auto active = window()->isActiveWindow();
 	const auto bg = active ? _controls.st()->bgActive : _controls.st()->bg;
 	QPainter p(this);
-	p.fillRect(e->rect(), bg);
+
+	const auto handle = window()->windowHandle();
+	if (handle && handle->format().alphaBufferSize() > 0) {
+		auto gradient = QLinearGradient(0, 0, 0, height());
+		auto top = bg->c;
+		top.setAlpha(105);
+		auto bottom = bg->c;
+		bottom.setAlpha(active ? 200 : 175);
+		gradient.setColorAt(0., top);
+		gradient.setColorAt(0.75, bottom);
+		gradient.setColorAt(1., bottom);
+		p.fillRect(e->rect(), gradient);
+	} else {
+		p.fillRect(e->rect(), bg);
+	}
 
 	const auto dark = (bg->c.lightness() < 128);
 	if (dark) {

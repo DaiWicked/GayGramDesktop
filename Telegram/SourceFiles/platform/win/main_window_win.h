@@ -75,6 +75,8 @@ private:
 	};
 
 	void setupNativeWindowFrame();
+	void setupGlassTitleBar();
+	bool applyGlassTitleBarAccent();
 	void setupPreviewPasscodeLock();
 	void updateTaskbarAndIconCounters();
 	void validateWindowTheme(bool native, bool night);

@@ -424,6 +424,7 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	qApp->installNativeEventFilter(&_private->filter);
 
 	setupNativeWindowFrame();
+	setupGlassTitleBar();
 
 	SetWindowPriority(this, controller->isPrimary() ? 2 : 1);
 
@@ -469,6 +470,36 @@ void MainWindow::setupNativeWindowFrame() {
 	) | rpl::skip(1) | rpl::on_next([=](bool native, bool night) {
 		validateWindowTheme(native, night);
 	}, lifetime());
+}
+
+void MainWindow::setupGlassTitleBar() {
+	if (!applyGlassTitleBarAccent()) {
+		return;
+	}
+	setAttribute(Qt::WA_TranslucentBackground);
+}
+
+bool MainWindow::applyGlassTitleBarAccent() {
+	if (!Dlls::SetWindowCompositionAttribute || !_hWnd) {
+		return false;
+	}
+	if (QOperatingSystemVersion::current().microVersion() < 17134) {
+		return false;
+	}
+	if (!Core::App().settings().readPref<bool>(Core::kGayGramTitleBarGlassKey, true)) {
+		return false;
+	}
+	Dlls::ACCENT_POLICY policy = { };
+	policy.AccentState = Dlls::ACCENT_STATE::ACCENT_ENABLE_BLURBEHIND;
+	policy.AccentFlags = 2;
+	policy.GradientColor = 0;
+	Dlls::WINDOWCOMPOSITIONATTRIBDATA data = {
+		Dlls::WINDOWCOMPOSITIONATTRIB::WCA_ACCENT_POLICY,
+		&policy,
+		sizeof(policy)
+	};
+	Dlls::SetWindowCompositionAttribute(_hWnd, &data);
+	return true;
 }
 
 void MainWindow::shadowsActivate() {
@@ -731,6 +762,7 @@ void MainWindow::initHook() {
 }
 
 void MainWindow::validateWindowTheme(bool native, bool night) {
+	applyGlassTitleBarAccent();
 	if (!IsWindows8OrGreater()) {
 		const auto empty = native ? nullptr : L" ";
 		SetWindowTheme(_hWnd, empty, empty);

@@ -46,6 +46,9 @@ inline constexpr auto kGayGramGlassStrengthKey
 inline constexpr auto kGayGramSidebarWidthKey
 	= "gaygramSidebarWidth"_cs;
 
+inline constexpr auto kGayGramTitleBarGlassKey
+	= "gaygramTitleBarGlass"_cs;
+
 struct WindowPosition {
 	int32 moncrc = 0;
 	int maximized = 0;

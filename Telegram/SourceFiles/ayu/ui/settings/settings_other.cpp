@@ -104,6 +104,32 @@ void BuildOtherThings(SectionBuilder &builder) {
 		},
 	});
 	builder.addButton({
+		.id = u"ayu/gaygramTitleBarGlass"_q,
+		.title = rpl::single(QString("标题栏玻璃")),
+		.icon = { &st::menuIconSettings },
+		.onClick = [=] {
+			const auto current = Core::App().settings().readPref<bool>(
+				Core::kGayGramTitleBarGlassKey, true);
+			const auto initial = current ? 1 : 0;
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				SingleChoiceBox(box, {
+					.title = rpl::single(QString("标题栏玻璃（需重启）")),
+					.options = std::vector<QString>{
+						u"关（不透明标题栏）"_q,
+						u"开（标题栏模糊桌面）"_q,
+					},
+					.initialSelection = initial,
+					.callback = [=](int index) {
+						Core::App().settings().writePref<bool>(
+							Core::kGayGramTitleBarGlassKey, index == 1);
+						controller->showToast(tr::lng_box_done(tr::now));
+						Core::Restart();
+					},
+				});
+			}));
+		},
+	});
+	builder.addButton({
 		.id = u"ayu/gaygramSidebarWidth"_q,
 		.title = rpl::single(QString("侧栏宽度")),
 		.icon = { &st::menuIconChats },
