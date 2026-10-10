@@ -158,6 +158,9 @@ void TitleWidget::paintEvent(QPaintEvent *e) {
 	} else {
 		p.fillRect(0, 0, width(), st::lineWidth, QColor(255, 255, 255));
 	}
+	p.fillRect(
+		0, height() - st::lineWidth, width(), st::lineWidth,
+		dark ? QColor(0, 0, 0, 60) : QColor(0, 0, 0, 20));
 }
 
 void TitleWidget::resizeEvent(QResizeEvent *e) {

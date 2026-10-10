@@ -4688,6 +4688,18 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 				- _st.starsSkip);
 		}
 		p.drawRoundedRect(full, _st.radius, _st.radius);
+		{
+			auto hq2 = PainterHighQualityEnabler(p);
+			auto rim = QLinearGradient(0, full.top(), 0, full.top() + 2);
+			rim.setColorAt(0.0, QColor(255, 255, 255, 50));
+			rim.setColorAt(1.0, QColor(255, 255, 255, 0));
+			p.setBrush(Qt::NoBrush);
+			p.setPen(QPen(QBrush(rim), 1));
+			p.drawRoundedRect(
+				QRectF(full).adjusted(0.5, 0.5, -0.5, -0.5),
+				_st.radius,
+				_st.radius);
+		}
 		if (focused()) {
 			p.setBrush(Qt::NoBrush);
 			p.setPen(QPen(st::windowBgActive, st::lineWidth));

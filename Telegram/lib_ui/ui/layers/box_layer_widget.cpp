@@ -142,10 +142,11 @@ void BoxLayerWidget::paintEvent(QPaintEvent *e) {
 	{
 		auto hq = PainterHighQualityEnabler(p);
 		auto gradient = QLinearGradient(0, 0, width(), height());
-		gradient.setColorAt(0.0, QColor(255, 255, 255, 128));
-		gradient.setColorAt(0.35, QColor(255, 255, 255, 26));
-		gradient.setColorAt(0.65, QColor(255, 255, 255, 15));
-		gradient.setColorAt(1.0, QColor(255, 255, 255, 128));
+		gradient.setColorAt(0.0, QColor(255, 255, 255, 180));
+		gradient.setColorAt(0.3, QColor(255, 255, 255, 60));
+		gradient.setColorAt(0.5, QColor(255, 255, 255, 0));
+		gradient.setColorAt(0.7, QColor(0, 0, 0, 40));
+		gradient.setColorAt(1.0, QColor(0, 0, 0, 120));
 		p.setBrush(Qt::NoBrush);
 		p.setPen(QPen(QBrush(gradient), st::glassHighlightWidth));
 		p.drawRoundedRect(
