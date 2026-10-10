@@ -14,6 +14,7 @@
 #include "styles/style_layers.h"
 #include "styles/palette.h"
 
+#include <QtGui/QPainterPath>
 #include <QtGui/QWindow>
 
 #include <limits>
@@ -141,24 +142,51 @@ void BoxLayerWidget::paintEvent(QPaintEvent *e) {
 	}
 	{
 		auto hq = PainterHighQualityEnabler(p);
-		const auto half = st::glassHighlightWidth / 2.;
+		const auto stroke = st::glassHighlightWidth * 2;
+		const auto half = stroke / 2.;
 		const auto r = QRectF(rect()).adjusted(half, half, -half, -half);
+		const auto w = width();
+		const auto h = height();
 		p.setBrush(Qt::NoBrush);
 		{
-			auto g = QLinearGradient(0, 0, 0, height());
-			g.setColorAt(0.0, st::glassHighlightFg->c);
-			g.setColorAt(0.5, QColor(255, 255, 255, 0));
-			g.setColorAt(1.0, QColor(255, 255, 255, 0));
-			p.setPen(QPen(QBrush(g), st::glassHighlightWidth));
-			p.drawRoundedRect(r, st::boxRadius, st::boxRadius);
+			auto shade = QPainterPath();
+			shade.moveTo(0, 0);
+			shade.lineTo(w, 0);
+			shade.lineTo(0, h);
+			shade.closeSubpath();
+			auto inside = QPainterPath();
+			inside.addRoundedRect(r, st::boxRadius, st::boxRadius);
+			auto g = QLinearGradient(0, 0, w, h);
+			g.setColorAt(0., QColor(0, 0, 0, 30));
+			g.setColorAt(0.35, QColor(0, 0, 0, 0));
+			p.save();
+			p.setClipPath(inside.intersected(shade));
+			p.fillRect(rect(), g);
+			p.restore();
 		}
 		{
-			auto g = QLinearGradient(0, 0, 0, height());
-			g.setColorAt(0.0, QColor(0, 0, 0, 0));
-			g.setColorAt(0.5, QColor(0, 0, 0, 0));
-			g.setColorAt(1.0, QColor(0, 0, 0, 80));
-			p.setPen(QPen(QBrush(g), st::glassHighlightWidth));
+			auto path = QPainterPath();
+			path.moveTo(0, 0);
+			path.lineTo(w, 0);
+			path.lineTo(0, h);
+			path.closeSubpath();
+			p.save();
+			p.setClipPath(path);
+			p.setPen(QPen(st::glassHighlightFg->c, stroke));
 			p.drawRoundedRect(r, st::boxRadius, st::boxRadius);
+			p.restore();
+		}
+		{
+			auto path = QPainterPath();
+			path.moveTo(w, 0);
+			path.lineTo(w, h);
+			path.lineTo(0, h);
+			path.closeSubpath();
+			p.save();
+			p.setClipPath(path);
+			p.setPen(QPen(QColor(0, 0, 0, 70), stroke));
+			p.drawRoundedRect(r, st::boxRadius, st::boxRadius);
+			p.restore();
 		}
 	}
 	if (!_additionalTitle.current().isEmpty()

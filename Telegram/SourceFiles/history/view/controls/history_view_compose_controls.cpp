@@ -130,6 +130,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_settings.h"
 #include "history/history_item_components.h"
 
+#include <QtGui/QPainterPath>
+
 
 namespace HistoryView {
 namespace {
@@ -4687,20 +4689,56 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 				- _starsReaction->width()
 				- _st.starsSkip);
 		}
+		p.setBrush(st::windowBgOver);
 		p.drawRoundedRect(full, _st.radius, _st.radius);
 		{
 			auto hq2 = PainterHighQualityEnabler(p);
-			const auto half = st::glassHighlightWidth / 2.;
-			auto rim = QLinearGradient(0, full.top(), 0, full.bottom());
-			rim.setColorAt(0.0, st::glassHighlightFg->c);
-			rim.setColorAt(0.5, QColor(255, 255, 255, 0));
-			rim.setColorAt(1.0, QColor(0, 0, 0, 40));
+			const auto stroke = st::glassHighlightWidth * 2;
+			const auto inset = st::lineWidth + stroke / 2.;
+			const auto r = QRectF(full).adjusted(inset, inset, -inset, -inset);
+			const auto w = full.width() - 2 * inset;
+			const auto h = full.height() - 2 * inset;
 			p.setBrush(Qt::NoBrush);
-			p.setPen(QPen(QBrush(rim), st::glassHighlightWidth));
-			p.drawRoundedRect(
-				QRectF(full).adjusted(half, half, -half, -half),
-				_st.radius,
-				_st.radius);
+			{
+				auto shade = QPainterPath();
+				shade.moveTo(full.left(), full.top());
+				shade.lineTo(full.left() + full.width(), full.top());
+				shade.lineTo(full.left(), full.top() + full.height());
+				shade.closeSubpath();
+				auto inside = QPainterPath();
+				inside.addRoundedRect(r, _st.radius, _st.radius);
+				auto g = QLinearGradient(full.topLeft(), full.bottomRight());
+				g.setColorAt(0., QColor(0, 0, 0, 30));
+				g.setColorAt(0.35, QColor(0, 0, 0, 0));
+				p.save();
+				p.setClipPath(inside.intersected(shade));
+				p.fillRect(full, g);
+				p.restore();
+			}
+			{
+				auto path = QPainterPath();
+				path.moveTo(inset, inset);
+				path.lineTo(inset + w, inset);
+				path.lineTo(inset, inset + h);
+				path.closeSubpath();
+				p.save();
+				p.setClipPath(path);
+				p.setPen(QPen(st::glassHighlightFg->c, stroke));
+				p.drawRoundedRect(r, _st.radius, _st.radius);
+				p.restore();
+			}
+			{
+				auto path = QPainterPath();
+				path.moveTo(inset + w, inset);
+				path.lineTo(inset + w, inset + h);
+				path.lineTo(inset, inset + h);
+				path.closeSubpath();
+				p.save();
+				p.setClipPath(path);
+				p.setPen(QPen(QColor(0, 0, 0, 70), stroke));
+				p.drawRoundedRect(r, _st.radius, _st.radius);
+				p.restore();
+			}
 		}
 		if (focused()) {
 			p.setBrush(Qt::NoBrush);
