@@ -1190,6 +1190,13 @@ ComposeControls::ComposeControls(
 			}
 		}, _wrap->lifetime());
 	}
+
+	Window::Theme::Background()->updates(
+	) | rpl::on_next([=] {
+		_glassBlurCache = QPixmap();
+		_wrap->update();
+	}, _wrap->lifetime());
+
 	init();
 }
 
@@ -4700,51 +4707,57 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 			if (bg && _regularWindow) {
 				const auto paperId = bg->paper().id();
 				const auto radius = Ui::GlassBlurRadius();
-				const auto cacheSize = full.size()
-					* style::DevicePixelRatio();
+				const auto ratio = style::DevicePixelRatio();
+				const auto cacheSize = full.size() * ratio;
 				if (_glassBlurCache.isNull()
 					|| _glassBlurCacheSize != cacheSize
 					|| _glassBlurCacheRadius != radius
 					|| _glassBlurCachePaperId != paperId) {
-					auto image = bg->createCurrentImage();
-					const auto originalSize = image.size();
-					if (!image.isNull() && radius > 0) {
-						const auto ratio = style::DevicePixelRatio();
-						constexpr auto kDownscale = 2;
-						auto small = image.size() / kDownscale;
-						if (small.width() < 1) small.setWidth(1);
-						if (small.height() < 1) small.setHeight(1);
-						image = image.scaled(
-							small,
-							Qt::IgnoreAspectRatio,
-							Qt::SmoothTransformation);
-						image = Images::BlurLargeImage(
-							std::move(image),
-							std::max(1, radius * ratio / kDownscale));
-						image = image.scaled(
-							originalSize,
-							Qt::IgnoreAspectRatio,
-							Qt::SmoothTransformation);
+					auto paper = bg->createCurrentImage();
+					if (!paper.isNull()) {
+						const auto windowPos = _wrap->mapTo(
+							_regularWindow->widget(),
+							QPoint(0, 0));
+						const auto wanted = QRect(windowPos * ratio, cacheSize);
+						const auto source = wanted
+							& QRect(QPoint(), paper.size());
+						auto crop = source.isEmpty()
+							? paper
+							: paper.copy(source);
+						if (!crop.isNull()) {
+							const auto small = crop.size() / 2;
+							if (radius > 0 && small.height() > 1) {
+								const auto blurRadius = std::clamp(
+									radius / 5,
+									1,
+									std::max(2, small.height() / 3));
+								auto blurred = crop.scaled(
+									small,
+									Qt::IgnoreAspectRatio,
+									Qt::SmoothTransformation);
+								blurred = Images::BlurLargeImage(
+									std::move(blurred),
+									blurRadius);
+								blurred = blurred.scaled(
+									crop.size(),
+									Qt::IgnoreAspectRatio,
+									Qt::SmoothTransformation);
+								crop = std::move(blurred);
+							}
+							_glassBlurCache = QPixmap::fromImage(std::move(crop));
+							_glassBlurCache.setDevicePixelRatio(ratio);
+						}
 					}
-					_glassBlurCache = QPixmap::fromImage(std::move(image));
 					_glassBlurCacheSize = cacheSize;
 					_glassBlurCacheRadius = radius;
 					_glassBlurCachePaperId = paperId;
 				}
 				if (!_glassBlurCache.isNull()) {
-					const auto widgetPos = _wrap->mapTo(
-						_regularWindow->widget(), QPoint(0, 0));
-					const auto source = QRect(
-						widgetPos * style::DevicePixelRatio(),
-						cacheSize);
-					p.drawPixmap(
-						full.topLeft(),
-						_glassBlurCache,
-						source);
+					p.drawPixmap(full, _glassBlurCache, _glassBlurCache.rect());
 				}
 			}
 			auto overlay = st::windowBgOver->c;
-			overlay.setAlpha(200);
+			overlay.setAlpha(150);
 			p.fillRect(full, overlay);
 			p.restore();
 		}

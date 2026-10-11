@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "main/main_session.h"
 #include "base/crc32hash.h"
+#include "base/debug_log.h"
 #include "base/platform/win/base_windows_wrl.h"
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
@@ -473,7 +474,13 @@ void MainWindow::setupNativeWindowFrame() {
 }
 
 void MainWindow::setupGlassTitleBar() {
-	if (!applyGlassTitleBarAccent()) {
+	if (!Dlls::SetWindowCompositionAttribute) {
+		return;
+	}
+	if (QOperatingSystemVersion::current().microVersion() < 17134) {
+		return;
+	}
+	if (!Core::App().settings().readPref<bool>(Core::kGayGramTitleBarGlassKey, true)) {
 		return;
 	}
 	setAttribute(Qt::WA_TranslucentBackground);
@@ -498,8 +505,12 @@ bool MainWindow::applyGlassTitleBarAccent() {
 		&policy,
 		sizeof(policy)
 	};
-	Dlls::SetWindowCompositionAttribute(_hWnd, &data);
-	return true;
+	const auto applied = Dlls::SetWindowCompositionAttribute(_hWnd, &data);
+	const auto handle = windowHandle();
+	LOG(("Glass: titlebar accent=%1 alphaBufferSize=%2"
+	).arg(applied ? 1 : 0
+	).arg(handle ? handle->format().alphaBufferSize() : -1));
+	return applied != FALSE;
 }
 
 void MainWindow::shadowsActivate() {
