@@ -27,6 +27,7 @@ namespace Ui {
 class BoxContent;
 
 void SetGlassBlurRadius(int radius);
+[[nodiscard]] int GlassBlurRadius();
 
 enum class LayerOption {
 	CloseOther = (1 << 0),

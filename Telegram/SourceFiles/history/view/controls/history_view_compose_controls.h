@@ -490,6 +490,10 @@ private:
 	rpl::event_stream<FullReplyTo> _jumpToItemRequests;
 
 	std::optional<Ui::RoundRect> _backgroundRect;
+	QPixmap _glassBlurCache;
+	QSize _glassBlurCacheSize;
+	int _glassBlurCacheRadius = -1;
+	uint64 _glassBlurCachePaperId = 0;
 
 	const std::shared_ptr<Ui::SendButton> _send;
 	rpl::event_stream<bool> _sendLockBadge;

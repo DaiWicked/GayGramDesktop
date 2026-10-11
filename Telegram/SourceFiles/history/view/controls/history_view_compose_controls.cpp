@@ -63,6 +63,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_compose_with_ai.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/color_int_conversion.h"
+#include "ui/image/image.h"
 #include "ui/painter.h"
 #include "ui/power_saving.h"
 #include "history/history.h"
@@ -116,6 +117,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_adaptive.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
+#include "window/themes/window_theme.h"
 #include "mainwindow.h"
 #include "styles/style_calls.h"
 #include "styles/style_chat.h"
@@ -4689,8 +4691,63 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 				- _starsReaction->width()
 				- _st.starsSkip);
 		}
-		p.setBrush(st::windowBgOver);
-		p.drawRoundedRect(full, _st.radius, _st.radius);
+		{
+			auto path = QPainterPath();
+			path.addRoundedRect(QRectF(full), _st.radius, _st.radius);
+			p.save();
+			p.setClipPath(path);
+			const auto bg = Window::Theme::Background();
+			if (bg && _regularWindow) {
+				const auto paperId = bg->paper().id();
+				const auto radius = Ui::GlassBlurRadius();
+				const auto cacheSize = full.size()
+					* style::DevicePixelRatio();
+				if (_glassBlurCache.isNull()
+					|| _glassBlurCacheSize != cacheSize
+					|| _glassBlurCacheRadius != radius
+					|| _glassBlurCachePaperId != paperId) {
+					auto image = bg->createCurrentImage();
+					const auto originalSize = image.size();
+					if (!image.isNull() && radius > 0) {
+						const auto ratio = style::DevicePixelRatio();
+						constexpr auto kDownscale = 2;
+						auto small = image.size() / kDownscale;
+						if (small.width() < 1) small.setWidth(1);
+						if (small.height() < 1) small.setHeight(1);
+						image = image.scaled(
+							small,
+							Qt::IgnoreAspectRatio,
+							Qt::SmoothTransformation);
+						image = Images::BlurLargeImage(
+							std::move(image),
+							std::max(1, radius * ratio / kDownscale));
+						image = image.scaled(
+							originalSize,
+							Qt::IgnoreAspectRatio,
+							Qt::SmoothTransformation);
+					}
+					_glassBlurCache = QPixmap::fromImage(std::move(image));
+					_glassBlurCacheSize = cacheSize;
+					_glassBlurCacheRadius = radius;
+					_glassBlurCachePaperId = paperId;
+				}
+				if (!_glassBlurCache.isNull()) {
+					const auto widgetPos = _wrap->mapTo(
+						_regularWindow->widget(), QPoint(0, 0));
+					const auto source = QRect(
+						widgetPos * style::DevicePixelRatio(),
+						cacheSize);
+					p.drawPixmap(
+						full.topLeft(),
+						_glassBlurCache,
+						source);
+				}
+			}
+			auto overlay = st::windowBgOver->c;
+			overlay.setAlpha(200);
+			p.fillRect(full, overlay);
+			p.restore();
+		}
 		{
 			auto hq2 = PainterHighQualityEnabler(p);
 			const auto stroke = st::glassHighlightWidth * 2;

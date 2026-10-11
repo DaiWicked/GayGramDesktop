@@ -101,6 +101,10 @@ void SetGlassBlurRadius(int radius) {
 	g_glassBlurRadiusChanges.fire_copy(value);
 }
 
+int GlassBlurRadius() {
+	return g_glassBlurRadius;
+}
+
 class LayerStackWidget::BackgroundWidget : public RpWidget {
 public:
 	using RpWidget::RpWidget;
