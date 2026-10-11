@@ -63,7 +63,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_compose_with_ai.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/color_int_conversion.h"
-#include "ui/image/image.h"
+#include "ui/image/image_prepare.h"
 #include "ui/painter.h"
 #include "ui/power_saving.h"
 #include "history/history.h"
