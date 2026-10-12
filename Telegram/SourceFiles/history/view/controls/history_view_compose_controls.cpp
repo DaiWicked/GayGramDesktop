@@ -139,6 +139,7 @@ namespace HistoryView {
 namespace {
 
 constexpr auto kSaveDraftTimeout = crl::time(1000);
+constexpr auto kGlassCacheRefreshDelay = crl::time(400);
 constexpr auto kSaveDraftAnywayTimeout = 5 * crl::time(1000);
 constexpr auto kSaveCloudDraftIdleTimeout = 12 * crl::time(1000);
 constexpr auto kMouseEvents = {
@@ -1195,6 +1196,10 @@ ComposeControls::ComposeControls(
 	) | rpl::on_next([=] {
 		_glassBlurCache = QPixmap();
 		_wrap->update();
+		base::call_delayed(kGlassCacheRefreshDelay, _wrap.get(), [=] {
+			_glassBlurCache = QPixmap();
+			_wrap->update();
+		});
 	}, _wrap->lifetime());
 
 	init();
@@ -4721,28 +4726,30 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 						const auto wanted = QRect(windowPos * ratio, cacheSize);
 						const auto source = wanted
 							& QRect(QPoint(), paper.size());
-						auto crop = source.isEmpty()
-							? paper
-							: paper.copy(source);
+						auto crop = (source.width() >= cacheSize.width() / 2
+							&& source.height() >= cacheSize.height() / 2)
+							? paper.copy(source)
+							: QImage();
+						if (crop.isNull()) {
+							auto scaled = paper.scaled(
+								cacheSize,
+								Qt::KeepAspectRatioByExpanding,
+								Qt::SmoothTransformation);
+							crop = scaled.copy(QRect(
+								(scaled.width() - cacheSize.width()) / 2,
+								(scaled.height() - cacheSize.height()) / 2,
+								cacheSize.width(),
+								cacheSize.height()));
+						}
 						if (!crop.isNull()) {
-							const auto small = crop.size() / 2;
-							if (radius > 0 && small.height() > 1) {
+							if (radius > 0 && crop.height() > 2) {
 								const auto blurRadius = std::clamp(
-									radius / 5,
+									radius / 12,
 									1,
-									std::max(2, small.height() / 3));
-								auto blurred = crop.scaled(
-									small,
-									Qt::IgnoreAspectRatio,
-									Qt::SmoothTransformation);
-								blurred = Images::BlurLargeImage(
-									std::move(blurred),
+									std::max(1, crop.height() / 8));
+								crop = Images::BlurLargeImage(
+									std::move(crop),
 									blurRadius);
-								blurred = blurred.scaled(
-									crop.size(),
-									Qt::IgnoreAspectRatio,
-									Qt::SmoothTransformation);
-								crop = std::move(blurred);
 							}
 							_glassBlurCache = QPixmap::fromImage(std::move(crop));
 							_glassBlurCache.setDevicePixelRatio(ratio);
@@ -4757,7 +4764,7 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 				}
 			}
 			auto overlay = st::windowBgOver->c;
-			overlay.setAlpha(150);
+			overlay.setAlpha(96);
 			p.fillRect(full, overlay);
 			p.restore();
 		}
