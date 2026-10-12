@@ -2085,6 +2085,7 @@ bool InputField::viewportEventInner(QEvent *e) {
 void InputField::updatePalette() {
 	auto p = _inner->palette();
 	p.setColor(QPalette::Text, _st.textFg->c);
+	p.setColor(QPalette::Base, Qt::transparent);
 	p.setColor(QPalette::Highlight, st::msgInBgSelected->c);
 	p.setColor(QPalette::HighlightedText, st::historyTextInFgSelected->c);
 	_inner->setPalette(p);
