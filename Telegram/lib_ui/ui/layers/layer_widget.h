@@ -29,6 +29,11 @@ class BoxContent;
 void SetGlassBlurRadius(int radius);
 [[nodiscard]] int GlassBlurRadius();
 
+[[nodiscard]] QImage PrepareLiquidGlass(
+	const QImage &backdrop,
+	int radius,
+	int dpr);
+
 enum class LayerOption {
 	CloseOther = (1 << 0),
 	KeepOther = (1 << 1),

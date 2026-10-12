@@ -4753,6 +4753,10 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 									std::move(crop),
 									blurRadius);
 							}
+							crop = Ui::PrepareLiquidGlass(
+								crop,
+								_st.radius,
+								int(ratio));
 							_glassBlurCache = QPixmap::fromImage(std::move(crop));
 							_glassBlurCache.setDevicePixelRatio(ratio);
 						}

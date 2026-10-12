@@ -19,6 +19,8 @@
 #include "rpl/event_stream.h"
 #include "styles/style_layers.h"
 #include "styles/style_widgets.h"
+
+#include <QtCore/qmath.h>
 #include "styles/palette.h"
 
 #include <QtGui/QtEvents>
@@ -30,6 +32,10 @@ int g_glassBlurRadius = 24;
 rpl::event_stream<int> g_glassBlurRadiusChanges;
 constexpr auto kGlassDownscale = 2;
 constexpr auto kGlassSaturationBoost = 118;
+constexpr auto kLiquidGlassBevelWidth = 30;
+constexpr auto kLiquidGlassRefractionRatio = 0.6;
+constexpr auto kLiquidGlassHighlight = 0.5;
+constexpr auto kLiquidGlassLightComponent = 0.70710678;
 
 [[nodiscard]] QImage BoostGlassSaturation(QImage &&image) {
 	for (auto y = 0; y < image.height(); ++y) {
@@ -103,6 +109,81 @@ void SetGlassBlurRadius(int radius) {
 
 int GlassBlurRadius() {
 	return g_glassBlurRadius;
+}
+
+QImage PrepareLiquidGlass(const QImage &backdrop, int radius, int dpr) {
+	if (backdrop.isNull() || backdrop.width() < 4 || backdrop.height() < 4) {
+		return backdrop;
+	}
+	auto result = backdrop.convertToFormat(QImage::Format_ARGB32);
+	const auto w = result.width();
+	const auto h = result.height();
+	const auto ratio = std::max(1, dpr);
+	const auto bevel = std::min<qreal>(
+		std::min(w, h) / 2.,
+		qreal(kLiquidGlassBevelWidth * ratio));
+	const auto refraction = bevel * kLiquidGlassRefractionRatio;
+	const auto corner = std::min<qreal>(
+		qreal(radius * ratio),
+		std::min(w, h) / 2.);
+	const auto halfW = w / 2.;
+	const auto halfH = h / 2.;
+	const auto sdf = [&](qreal x, qreal y) {
+		const auto dx = std::abs(x - halfW) - (halfW - corner);
+		const auto dy = std::abs(y - halfH) - (halfH - corner);
+		const auto ax = std::max<qreal>(dx, 0.);
+		const auto ay = std::max<qreal>(dy, 0.);
+		return qSqrt(ax * ax + ay * ay)
+			+ std::min<qreal>(std::max(dx, dy), 0.)
+			- corner;
+	};
+	const auto light = kLiquidGlassLightComponent;
+	for (auto y = 0; y < h; ++y) {
+		auto line = reinterpret_cast<QRgb*>(result.scanLine(y));
+		for (auto x = 0; x < w; ++x) {
+			const auto distance = -sdf(x + 0.5, y + 0.5);
+			if (distance > bevel * 2.) {
+				continue;
+			}
+			auto nx = sdf(x + 1.5, y + 0.5) - sdf(x - 0.5, y + 0.5);
+			auto ny = sdf(x + 0.5, y + 1.5) - sdf(x + 0.5, y - 0.5);
+			const auto length = qSqrt(nx * nx + ny * ny);
+			if (length < 0.0001) {
+				continue;
+			}
+			nx /= length;
+			ny /= length;
+			const auto progress = std::clamp(distance / bevel, 0., 1.);
+			const auto intensity = 1. - qSqrt(std::max(
+				0.,
+				1. - (1. - progress) * (1. - progress)));
+			const auto sx = std::clamp(
+				qreal(x) - intensity * refraction * nx,
+				0.,
+				qreal(w - 1));
+			const auto sy = std::clamp(
+				qreal(y) - intensity * refraction * ny,
+				0.,
+				qreal(h - 1));
+			const auto source = reinterpret_cast<const QRgb*>(
+				backdrop.constScanLine(int(sy)))[int(sx)];
+			const auto towards = std::clamp(nx * light + ny * light, 0., 1.);
+			const auto away = std::clamp(-(nx * light + ny * light), 0., 1.);
+			const auto ring = std::clamp(
+				1. - std::abs(intensity - 0.25) * 6.,
+				0.,
+				1.);
+			const auto boost = 1.
+				+ kLiquidGlassHighlight * intensity * towards
+				+ kLiquidGlassHighlight * 0.5 * away * ring;
+			line[x] = qRgba(
+				std::min(255, int(qRed(source) * boost + 0.5)),
+				std::min(255, int(qGreen(source) * boost + 0.5)),
+				std::min(255, int(qBlue(source) * boost + 0.5)),
+				qAlpha(source));
+		}
+	}
+	return result;
 }
 
 class LayerStackWidget::BackgroundWidget : public RpWidget {
