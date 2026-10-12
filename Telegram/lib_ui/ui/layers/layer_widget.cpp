@@ -219,6 +219,9 @@ public:
 		QPixmap &&layerCache);
 	void removeBodyCache();
 	[[nodiscard]] bool hasBodyCache() const;
+	[[nodiscard]] const QPixmap &bodyCache() const {
+		return _bodyCache;
+	}
 	void refreshBodyCache(QPixmap &&bodyCache);
 	void startAnimation(Action action, crl::time duration = 0);
 	void skipAnimation(Action action, crl::time duration = 0);
@@ -777,6 +780,9 @@ void LayerStackWidget::setCacheImages() {
 	setAttribute(Qt::WA_OpaquePaintEvent, !bodyCache.isNull());
 	updateLayerBoxes();
 	_background->setCacheImages(std::move(bodyCache), std::move(mainMenuCache), std::move(specialLayerCache), std::move(layerCache));
+	if (const auto box = dynamic_cast<BoxLayerWidget*>(currentLayer())) {
+		box->setGlassBackdrop(_background->bodyCache(), box->pos());
+	}
 }
 
 void LayerStackWidget::closeLayer(not_null<LayerWidget*> layer) {

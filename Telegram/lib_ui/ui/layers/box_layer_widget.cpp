@@ -118,26 +118,71 @@ QRect BoxLayerWidget::loadingRect() const {
 		size);
 }
 
+void BoxLayerWidget::setGlassBackdrop(QPixmap backdrop, QPoint offset) {
+	_glassBackdrop = std::move(backdrop);
+	_glassOffset = offset;
+	_glassMaterial = QPixmap();
+	_glassMaterialSize = QSize();
+	update();
+}
+
+const QPixmap &BoxLayerWidget::glassMaterial() {
+	const auto size = rect().size();
+	if (_glassMaterialSize == size) {
+		return _glassMaterial;
+	}
+	_glassMaterialSize = size;
+	_glassMaterial = QPixmap();
+	if (_glassBackdrop.isNull() || size.isEmpty()) {
+		return _glassMaterial;
+	}
+	const auto ratio = style::DevicePixelRatio();
+	const auto wanted = QRect(_glassOffset * ratio, size * ratio);
+	const auto source = wanted & QRect(QPoint(), _glassBackdrop.size());
+	if (source.isEmpty()) {
+		return _glassMaterial;
+	}
+	auto crop = _glassBackdrop.copy(source).toImage();
+	if (crop.isNull()) {
+		return _glassMaterial;
+	}
+	_glassMaterial = QPixmap::fromImage(
+		Ui::PrepareLiquidGlass(crop, st::boxRadius, int(ratio)));
+	_glassMaterial.setDevicePixelRatio(ratio);
+	return _glassMaterial;
+}
+
 void BoxLayerWidget::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
 	const auto clip = e->rect();
-	const auto paintTopRounded = !(_customCornersFilling & RectPart::FullTop)
-		&& clip.intersects(QRect(0, 0, width(), st::boxRadius));
-	const auto paintBottomRounded = !(_customCornersFilling
-		& RectPart::FullBottom)
-		&& clip.intersects(
-			QRect(0, height() - st::boxRadius, width(), st::boxRadius));
-	if (paintTopRounded || paintBottomRounded) {
-		_roundRect.paint(p, rect(), RectPart::None
-			| (paintTopRounded ? RectPart::FullTop : RectPart::None)
-			| (paintBottomRounded ? RectPart::FullBottom : RectPart::None));
-	}
-	const auto other = e->region().intersected(
-		QRect(0, st::boxRadius, width(), height() - 2 * st::boxRadius));
-	if (!other.isEmpty()) {
-		for (const auto &rect : other) {
-			p.fillRect(rect, st().bg);
+	const auto &material = glassMaterial();
+	if (!material.isNull() && !_customCornersFilling) {
+		auto path = QPainterPath();
+		path.addRoundedRect(QRectF(rect()), st::boxRadius, st::boxRadius);
+		p.save();
+		p.setClipPath(path);
+		p.drawPixmap(rect(), material);
+		p.fillRect(rect(), st().bg);
+		p.restore();
+	} else {
+		const auto paintTopRounded = !(_customCornersFilling & RectPart::FullTop)
+			&& clip.intersects(QRect(0, 0, width(), st::boxRadius));
+		const auto paintBottomRounded = !(_customCornersFilling
+			& RectPart::FullBottom)
+			&& clip.intersects(
+				QRect(0, height() - st::boxRadius, width(), st::boxRadius));
+		if (paintTopRounded || paintBottomRounded) {
+			_roundRect.paint(p, rect(), RectPart::None
+				| (paintTopRounded ? RectPart::FullTop : RectPart::None)
+				| (paintBottomRounded ? RectPart::FullBottom : RectPart::None));
+		}
+		const auto other = e->region().intersected(
+			QRect(0, st::boxRadius, width(), height() - 2 * st::boxRadius));
+		if (!other.isEmpty()) {
+			for (const auto &rect : other) {
+				p.fillRect(rect, st().bg);
+			}
 		}
 	}
 	{

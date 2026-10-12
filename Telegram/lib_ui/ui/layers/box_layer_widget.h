@@ -13,6 +13,8 @@
 #include "ui/round_rect.h"
 #include "ui/rp_widget.h"
 
+#include <QtGui/QPixmap>
+
 class Painter;
 struct TextWithEntities;
 
@@ -43,6 +45,7 @@ public:
 
 	void setLayerType(bool layerType) override;
 	void setStyle(const style::Box &st) override;
+	void setGlassBackdrop(QPixmap backdrop, QPoint offset);
 	const style::Box &style() override;
 	void setTitle(
 		rpl::producer<TextWithEntities> title,
@@ -116,6 +119,7 @@ private:
 
 	void paintAdditionalTitle(Painter &p);
 	void updateTitlePosition();
+	[[nodiscard]] const QPixmap &glassMaterial();
 
 	[[nodiscard]] const style::Box &st() const;
 	[[nodiscard]] bool hasTitle() const;
@@ -141,6 +145,10 @@ private:
 	object_ptr<BoxContent> _content;
 
 	RoundRect _roundRect;
+	QPixmap _glassBackdrop;
+	QPixmap _glassMaterial;
+	QSize _glassMaterialSize;
+	QPoint _glassOffset;
 	object_ptr<FlatLabel> _title = { nullptr };
 	Fn<TextWithEntities()> _titleFactory;
 	rpl::variable<QString> _additionalTitle;
