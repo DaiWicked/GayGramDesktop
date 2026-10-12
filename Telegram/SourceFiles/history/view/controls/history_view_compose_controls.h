@@ -493,6 +493,7 @@ private:
 	QPixmap _glassBlurCache;
 	QSize _glassBlurCacheSize;
 	int _glassBlurCacheRadius = -1;
+	int _glassTintAlpha = 56;
 	uint64 _glassBlurCachePaperId = 0;
 
 	const std::shared_ptr<Ui::SendButton> _send;

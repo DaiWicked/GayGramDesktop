@@ -32,9 +32,9 @@ int g_glassBlurRadius = 24;
 rpl::event_stream<int> g_glassBlurRadiusChanges;
 constexpr auto kGlassDownscale = 2;
 constexpr auto kGlassSaturationBoost = 118;
-constexpr auto kLiquidGlassBevelWidth = 30;
-constexpr auto kLiquidGlassRefractionRatio = 0.6;
-constexpr auto kLiquidGlassHighlight = 0.5;
+constexpr auto kLiquidGlassBevelWidth = 14;
+constexpr auto kLiquidGlassRefractionRatio = 0.9;
+constexpr auto kLiquidGlassHighlight = 0.8;
 constexpr auto kLiquidGlassLightComponent = 0.70710678;
 
 [[nodiscard]] QImage BoostGlassSaturation(QImage &&image) {

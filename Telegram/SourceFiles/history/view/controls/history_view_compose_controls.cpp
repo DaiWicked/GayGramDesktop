@@ -4711,7 +4711,7 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 			p.save();
 			p.setClipPath(path);
 			const auto bg = Window::Theme::Background();
-			if (bg && _regularWindow) {
+			if (bg) {
 				const auto paperId = bg->paper().id();
 				const auto radius = Ui::GlassBlurRadius();
 				const auto ratio = style::DevicePixelRatio();
@@ -4723,7 +4723,7 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 					auto paper = bg->createCurrentImage();
 					if (!paper.isNull()) {
 						const auto windowPos = _wrap->mapTo(
-							_regularWindow->widget(),
+							_wrap->window(),
 							QPoint(0, 0));
 						const auto wanted = QRect(windowPos * ratio, cacheSize);
 						const auto source = wanted
@@ -4757,6 +4757,19 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 								crop,
 								_st.radius,
 								int(ratio));
+							auto sum = 0;
+							auto count = 0;
+							for (auto y = 0; y < crop.height(); y += 4) {
+								const auto line = reinterpret_cast<const QRgb*>(
+									crop.constScanLine(y));
+								for (auto x = 0; x < crop.width(); x += 4) {
+									sum += qGray(line[x]);
+									++count;
+								}
+							}
+							_glassTintAlpha = (count && (sum / count) > 150)
+								? 56
+								: 112;
 							_glassBlurCache = QPixmap::fromImage(std::move(crop));
 							_glassBlurCache.setDevicePixelRatio(ratio);
 						}
@@ -4770,7 +4783,7 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 				}
 			}
 			auto overlay = st::windowBgOver->c;
-			overlay.setAlpha(96);
+			overlay.setAlpha(_glassTintAlpha);
 			p.fillRect(full, overlay);
 			p.restore();
 		}
