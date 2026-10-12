@@ -1344,7 +1344,7 @@ historyAttachEmojiInner: IconButton(historyAttach) {
 }
 historyAttachEmoji: EmojiButton {
 	inner: historyAttachEmojiInner;
-	bg: historyComposeAreaBg;
+	bg: transparent;
 	lineFg: historyEmojiCircleFg;
 	lineFgOver: historyEmojiCircleFgOver;
 }

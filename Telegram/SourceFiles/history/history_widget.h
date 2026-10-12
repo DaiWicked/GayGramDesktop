@@ -650,6 +650,8 @@ private:
 	void sendInlineResult(InlineBots::ResultSelected result);
 
 	void drawField(Painter &p, const QRect &rect);
+	[[nodiscard]] QRect glassFieldRect() const;
+	void paintGlassField(QPainter &p, const QRect &clip);
 	void paintEditHeader(
 		Painter &p,
 		const QRect &rect,
@@ -949,6 +951,11 @@ private:
 	bool _cmdStartShown = false;
 	object_ptr<Ui::InputField> _field;
 	std::unique_ptr<HistoryView::Controls::RichDraftPreview> _richDraftPreview;
+	style::owned_color _glassFieldBg = style::owned_color(QColor(Qt::transparent));
+	QPixmap _glassMaterial;
+	QSize _glassMaterialSize;
+	int _glassMaterialRadius = 0;
+	int _glassTintAlpha = 56;
 	base::unique_qptr<Ui::RpWidget> _fieldDisabled;
 	std::unique_ptr<Ui::RpWidget> _sendRestriction;
 	using CharactersLimitLabel = HistoryView::Controls::CharactersLimitLabel;

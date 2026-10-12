@@ -4722,27 +4722,10 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 					|| _glassBlurCachePaperId != paperId) {
 					auto paper = bg->createCurrentImage();
 					if (!paper.isNull()) {
-						const auto windowPos = _wrap->mapTo(
-							_wrap->window(),
-							QPoint(0, 0));
-						const auto wanted = QRect(windowPos * ratio, cacheSize);
-						const auto source = wanted
-							& QRect(QPoint(), paper.size());
-						auto crop = (source.width() >= cacheSize.width() / 2
-							&& source.height() >= cacheSize.height() / 2)
-							? paper.copy(source)
-							: QImage();
-						if (crop.isNull()) {
-							auto scaled = paper.scaled(
-								cacheSize,
-								Qt::KeepAspectRatioByExpanding,
-								Qt::SmoothTransformation);
-							crop = scaled.copy(QRect(
-								(scaled.width() - cacheSize.width()) / 2,
-								(scaled.height() - cacheSize.height()) / 2,
-								cacheSize.width(),
-								cacheSize.height()));
-						}
+						auto crop = paper.scaled(
+							cacheSize,
+							Qt::IgnoreAspectRatio,
+							Qt::SmoothTransformation);
 						if (!crop.isNull()) {
 							if (radius > 0 && crop.height() > 2) {
 								const auto blurRadius = std::clamp(

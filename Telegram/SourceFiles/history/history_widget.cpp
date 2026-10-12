@@ -53,6 +53,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/choose_send_as.h"
 #include "ui/effects/spoiler_mess.h"
 #include "ui/image/image.h"
+#include "ui/image/image_prepare.h"
+#include "ui/layers/layer_widget.h"
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/power_saving.h"
@@ -187,6 +189,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/session/send_as_peers.h"
 #include "webrtc/webrtc_environment.h"
 #include "window/notifications_manager.h"
+#include "window/themes/window_theme.h"
 #include "window/window_adaptive.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
@@ -265,6 +268,16 @@ const auto kPsaAboutPrefix = "cloud_lng_about_psa_";
 	return QString();
 }
 
+[[nodiscard]] const style::EmojiButton &TransparentEmojiButtonStyle() {
+	static const auto palette = style::owned_color(QColor(Qt::transparent));
+	static const auto style = [&] {
+		auto result = st::historyAttachEmoji;
+		result.bg = palette.color();
+		return result;
+	}();
+	return style;
+}
+
 #define SWITCH_BUTTON(button, show_v) \
 	if (show_v) { \
 		(button)->show(); \
@@ -335,7 +348,7 @@ HistoryWidget::HistoryWidget(
 	st::historyComposeButton)
 , _reportMessages(this, QString(), st::historyComposeButton)
 , _attachToggle(this, st::historyAttach)
-, _tabbedSelectorToggle(this, st::historyAttachEmoji)
+, _tabbedSelectorToggle(this, TransparentEmojiButtonStyle())
 , _botKeyboardShow(this, st::historyBotKeyboardShow)
 , _botKeyboardHide(this, st::historyBotKeyboardHide)
 , _botCommandStart(this, st::historyBotCommandStart)
@@ -584,7 +597,14 @@ HistoryWidget::HistoryWidget(
 		showPremiumToast(document);
 		return false;
 	});
-	InitMessageFieldFade(_field, st::historyComposeField.textBg);
+	_field->setTextBgOverride(_glassFieldBg.color());
+	InitMessageFieldFade(_field, _glassFieldBg.color());
+	Window::Theme::Background()->updates(
+	) | rpl::on_next([=] {
+		_glassMaterialSize = QSize();
+		_glassMaterial = QPixmap();
+		update();
+	}, lifetime());
 
 	setupFastButtonMode();
 	initAiButton();
@@ -11055,6 +11075,13 @@ void HistoryWidget::updateField() {
 	rtlupdate(0, fieldAreaTop, width(), height() - fieldAreaTop);
 }
 
+QRect HistoryWidget::glassFieldRect() const {
+	return QRect();
+}
+
+void HistoryWidget::paintGlassField(QPainter &p, const QRect &clip) {
+}
+
 void HistoryWidget::drawField(Painter &p, const QRect &rect) {
 	_repaintFieldScheduled = false;
 
@@ -11073,7 +11100,23 @@ void HistoryWidget::drawField(Painter &p, const QRect &rect) {
 	}
 	p.setInactive(
 		controller()->isGifPausedAtLeastFor(Window::GifPauseReason::Any));
-	p.fillRect(myrtlrect(0, backy, width(), backh), st::historyReplyBg);
+	const auto row = glassFieldRect();
+	if (row.isEmpty()) {
+		p.fillRect(myrtlrect(0, backy, width(), backh), st::historyReplyBg);
+	} else {
+		const auto above = myrtlrect(0, backy, width(), row.top() - backy);
+		if (above.height() > 0) {
+			p.fillRect(above, st::historyReplyBg);
+		}
+		const auto below = myrtlrect(
+			0,
+			row.top() + row.height(),
+			width(),
+			backy + backh - row.top() - row.height());
+		if (below.height() > 0) {
+			p.fillRect(below, st::historyReplyBg);
+		}
+	}
 
 	const auto media = (!_previewDrawPreview && drawMsgText)
 		? drawMsgText->media()
