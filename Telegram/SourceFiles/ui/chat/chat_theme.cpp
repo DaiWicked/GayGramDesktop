@@ -1178,8 +1178,8 @@ QImage InvertPatternImage(QImage pattern) {
 
 QImage PrepareBlurredBackground(QImage image, int strength) {
 	constexpr auto kSize = 900;
-	constexpr auto kMaxRadius = 14;
-	constexpr auto kDefaultRadius = 8;
+	constexpr auto kMaxRadius = 20;
+	constexpr auto kDefaultRadius = 10;
 	strength = std::clamp(strength, 0, 100);
 	if (strength <= 0) {
 		return image;

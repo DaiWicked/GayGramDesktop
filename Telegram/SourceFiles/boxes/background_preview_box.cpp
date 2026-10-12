@@ -585,7 +585,8 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 		_blurSlider->setChangeFinishedCallback(blurHandle);
 	}
 	_blurSlider->setValue(_blurIntensity / 100.);
-	_blurSlider->setDisabled(_paper.document() && _full.isNull());
+	_blurSlider->setDisabled(
+		!_blur->checked() || (_paper.document() && _full.isNull()));
 	_blurSlider->show();
 
 	rpl::combine(
@@ -614,6 +615,10 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 
 	_blur->checkedChanges(
 	) | rpl::on_next([=](bool checked) {
+		if (_blurSlider) {
+			_blurSlider->setDisabled(
+				!checked || (_paper.document() && _full.isNull()));
+		}
 		checkBlurAnimationStart();
 		update();
 	}, _blur->lifetime());
@@ -1066,8 +1071,10 @@ void BackgroundPreviewBox::setScaledFromThumb() {
 		_paper.backgroundColors(),
 		_paper.gradientRotation(),
 		_paper.patternOpacity(),
-		_paper.document() ? Images::Option::Blur : Images::Option());
-	auto blurred = (_paper.document() || _paper.isPattern())
+		(_paper.document() && _full.isNull())
+			? Images::Option::Blur
+			: Images::Option());
+	auto blurred = _paper.isPattern()
 		? QImage()
 		: PrepareScaledNonPattern(
 			Ui::PrepareBlurredBackground(thumbnail->original(), _blurIntensity),
@@ -1096,13 +1103,18 @@ void BackgroundPreviewBox::startFadeInFrom(QPixmap previous) {
 
 void BackgroundPreviewBox::checkBlurAnimationStart() {
 	if (_fadeIn.animating()
-		|| _blurred.isNull()
 		|| !_blur
 		|| _paper.isBlurred() == _blur->checked()) {
 		return;
 	}
 	_paper = _paper.withBlurred(_blur->checked());
-	startFadeInFrom(_paper.isBlurred() ? _scaled : _blurred);
+	if (_blurred.isNull()) {
+		_scaled = QPixmap();
+		setScaledFromThumb();
+	} else {
+		startFadeInFrom(_paper.isBlurred() ? _scaled : _blurred);
+	}
+	update();
 }
 
 void BackgroundPreviewBox::updateServiceBg(const std::vector<QColor> &bg) {
