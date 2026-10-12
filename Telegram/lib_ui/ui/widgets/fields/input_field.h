@@ -272,6 +272,7 @@ public:
 	using ContextMenuHook = Fn<void(ContextMenuRequest)>;
 
 	void setPlaceholderColorOverride(const style::color &color);
+	void setTextBgOverride(const style::color &color);
 
 	void setDocumentMargin(float64 margin);
 	void setAdditionalMargin(int margin);
@@ -600,6 +601,7 @@ private:
 
 	const style::InputField &_st;
 	std::optional<style::color> _placeholderFgOverride;
+	std::optional<style::color> _textBgOverride;
 	Fn<not_null<Ui::Text::QuotePaintCache*>()> _preCache;
 	Fn<not_null<Ui::Text::QuotePaintCache*>()> _blockquoteCache;
 

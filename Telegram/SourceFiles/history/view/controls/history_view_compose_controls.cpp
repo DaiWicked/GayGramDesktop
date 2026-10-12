@@ -1202,6 +1202,8 @@ ComposeControls::ComposeControls(
 		});
 	}, _wrap->lifetime());
 
+	_field->setTextBgOverride(_glassFieldBg.color());
+
 	init();
 }
 
@@ -2703,7 +2705,7 @@ void ComposeControls::initField() {
 		}
 		return false;
 	});
-	InitMessageFieldFade(_field, _st.field.textBg);
+	InitMessageFieldFade(_field, _glassFieldBg.color());
 	_field->setEditLinkCallback(
 		DefaultEditLinkCallback(_show, _field, &_st.boxField));
 	_field->setEditLanguageCallback(DefaultEditLanguageCallback(_show));

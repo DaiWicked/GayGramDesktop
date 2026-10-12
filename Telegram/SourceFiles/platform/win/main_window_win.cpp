@@ -499,7 +499,7 @@ bool MainWindow::applyGlassTitleBarAccent() {
 	Dlls::ACCENT_POLICY policy = { };
 	policy.AccentState = Dlls::ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND;
 	policy.AccentFlags = 2;
-	policy.GradientColor = 0x4DFFFFFF;
+	policy.GradientColor = 0x73FFFFFF;
 	Dlls::WINDOWCOMPOSITIONATTRIBDATA data = {
 		Dlls::WINDOWCOMPOSITIONATTRIB::WCA_ACCENT_POLICY,
 		&policy,

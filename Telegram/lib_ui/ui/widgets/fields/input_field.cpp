@@ -2483,6 +2483,15 @@ void InputField::setPlaceholderColorOverride(const style::color &color) {
 	update();
 }
 
+void InputField::setTextBgOverride(const style::color &color) {
+	_textBgOverride = color;
+	const auto &bg = _textBgOverride ? *_textBgOverride : _st.textBg;
+	setAttribute(
+		Qt::WA_OpaquePaintEvent,
+		bg->c.alphaF() >= 1. && !_st.borderRadius);
+	update();
+}
+
 void InputField::setDocumentMargin(float64 margin) {
 	_settingDocumentMargin = true;
 	document()->setDocumentMargin(margin);
@@ -2700,8 +2709,9 @@ void InputField::paintFlatSurrounding(
 		QRect clip,
 		float64 errorDegree,
 		float64 focusedDegree) {
-	if (_st.textBg->c.alphaF() > 0.) {
-		p.fillRect(clip, _st.textBg);
+	const auto &bg = _textBgOverride ? *_textBgOverride : _st.textBg;
+	if (bg->c.alphaF() > 0.) {
+		p.fillRect(clip, bg);
 	}
 	if (_st.border) {
 		p.fillRect(0, height() - _st.border, width(), _st.border, _st.borderFg);

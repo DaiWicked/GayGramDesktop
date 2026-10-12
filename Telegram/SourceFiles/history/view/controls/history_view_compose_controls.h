@@ -517,6 +517,7 @@ private:
 	std::unique_ptr<Ui::IconButton> _replaceMedia;
 	const not_null<Ui::EmojiButton*> _tabbedSelectorToggle;
 	rpl::producer<QString> _fieldCustomPlaceholder;
+	style::internal::OwnedColor _glassFieldBg{ QColor(Qt::transparent) };
 	const not_null<Ui::InputField*> _field;
 	std::unique_ptr<Controls::RichDraftPreview> _richDraftPreview;
 	Ui::IconButton * const _botCommandStart = nullptr;

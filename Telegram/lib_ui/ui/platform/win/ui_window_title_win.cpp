@@ -151,9 +151,9 @@ void TitleWidget::paintEvent(QPaintEvent *e) {
 	if (handle && handle->format().alphaBufferSize() > 0) {
 		auto gradient = QLinearGradient(0, 0, 0, height());
 		auto top = bg->c;
-		top.setAlpha(55);
+		top.setAlpha(78);
 		auto bottom = bg->c;
-		bottom.setAlpha(active ? 140 : 120);
+		bottom.setAlpha(active ? 168 : 150);
 		gradient.setColorAt(0., top);
 		gradient.setColorAt(0.75, bottom);
 		gradient.setColorAt(1., bottom);
@@ -170,11 +170,11 @@ void TitleWidget::paintEvent(QPaintEvent *e) {
 				? kTitleLineAlphaActive
 				: kTitleLineAlphaInactive));
 	} else {
-		p.fillRect(0, 0, width(), st::lineWidth, QColor(255, 255, 255));
+		p.fillRect(0, 0, width(), st::lineWidth, QColor(255, 255, 255, 150));
 	}
 	p.fillRect(
 		0, height() - st::lineWidth, width(), st::lineWidth,
-		dark ? QColor(0, 0, 0, 70) : QColor(0, 0, 0, 40));
+		dark ? QColor(0, 0, 0, 90) : QColor(0, 0, 0, 64));
 }
 
 void TitleWidget::resizeEvent(QResizeEvent *e) {
