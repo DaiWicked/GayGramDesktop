@@ -9024,3 +9024,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_AboutText1" = "ToS breaking Telegram client based on {api_link}.";
 "ayu_UpdateAyuGram" = "Update GayGram";
 "ayu_UtilityRestartRequired" = "The app will close in 5 seconds.";
+
+// v7.2.9 新增键
+"lng_folder_archive_status" = "ZIP archive";
+"lng_photo_editor_align" = "Alignment";
+"lng_photo_editor_font" = "Font";
+"lng_photo_editor_font_condensed" = "Condensed";
+"lng_photo_editor_font_default" = "Default";
+"lng_photo_editor_font_italic" = "Italic";
+"lng_photo_editor_font_monospace" = "Monospace";
+"lng_photo_editor_font_serif" = "Serif";
+"lng_photo_editor_text_style_opaque" = "Opaque";
+"lng_stop_button" = "Stop";
