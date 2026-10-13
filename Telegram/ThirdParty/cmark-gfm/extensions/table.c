@@ -1,4 +1,4 @@
-﻿#include <cmark-gfm-extension_api.h>
+#include <cmark-gfm-extension_api.h>
 #include <html.h>
 #include <inlines.h>
 #include <parser.h>
@@ -197,7 +197,7 @@ static table_row *row_from_string(cmark_syntax_extension *self,
   //
   // > Each row consists of cells containing arbitrary text, in which inlines
   // > are parsed, separated by pipes (|). A leading and trailing pipe is also
-  // > recommended for clarity of reading, and if there's otherwise parsing
+  // > recommended for clarity of reading, and if there’s otherwise parsing
   // > ambiguity.
 
   table_row *row = NULL;
