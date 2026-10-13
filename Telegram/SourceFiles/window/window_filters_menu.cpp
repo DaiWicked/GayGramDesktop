@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_filters_menu.h"
 
+#include "menu/menu_mark_as_read.h"
 #include "mainwindow.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -56,12 +57,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Window {
 namespace {
 
-int SidebarWidth() {
-	const auto stored = Core::App().settings().readPref<int>(
-		Core::kGayGramSidebarWidthKey, 0);
-	return (stored > 0) ? stored : st::windowFiltersWidth;
-}
-
 // The folder tabs container, exposed as a list to screen readers.
 class TabListLayout final : public Ui::VerticalLayout {
 public:
@@ -104,12 +99,6 @@ public:
 
 } // namespace
 
-int SidebarWidthFromSettings() {
-	const auto stored = Core::App().settings().readPref<int>(
-		Core::kGayGramSidebarWidthKey, 0);
-	return (stored > 0) ? stored : st::windowFiltersWidth;
-}
-
 FiltersMenu::FiltersMenu(
 	not_null<Ui::RpWidget*> parent,
 	not_null<SessionController*> session)
@@ -121,8 +110,6 @@ FiltersMenu::FiltersMenu(
 , _container(
 	_scroll.setOwnedWidget(
 		object_ptr<Ui::VerticalLayout>(&_scroll))) {
-
-	_sidebarWidth = SidebarWidthFromSettings();
 
 	_drag.timer.setCallback([=] {
 		if (_drag.filterId >= 0) {
@@ -142,6 +129,13 @@ void FiltersMenu::setup() {
 
 	_outer.setAttribute(Qt::WA_OpaquePaintEvent);
 	_outer.show();
+
+	// Keep the sidebar's Tab chain in visual order: the main menu button
+	// above the scroll area, and inside it the folders list (entered at
+	// its roving Tab-stop), the favorite link and the edit button - even
+	// as folders are reordered and the favorite appears or disappears.
+	_outer.setVisualTabOrder(true);
+	_container->setVisualTabOrder(true);
 	_outer.paintRequest(
 	) | rpl::on_next([=](QRect clip) {
 		auto p = QPainter(&_outer);
@@ -152,7 +146,7 @@ void FiltersMenu::setup() {
 
 	_parent->heightValue(
 	) | rpl::on_next([=](int height) {
-		const auto width = _sidebarWidth;
+		const auto width = st::windowFiltersWidth;
 		_outer.setGeometry({ 0, 0, width, height });
 		_menu.resizeToWidth(width);
 		_menu.move(0, 0);
@@ -274,7 +268,9 @@ void FiltersMenu::scrollToButton(not_null<Ui::RpWidget*> widget) {
 	const auto scrollTo = scrollTop + (isBottomEdge ? localBottom : localTop);
 
 	auto scroll = [=] {
-		_scroll.scrollToY(qRound(_scrollToAnimation.value(scrollTo)));
+		const auto animated
+			= int(base::SafeRound(_scrollToAnimation.value(scrollTo)));
+		_scroll.scrollToY(animated);
 	};
 
 	_scrollToAnimation.start(
@@ -333,23 +329,21 @@ void FiltersMenu::moveToFilterEdge(int delta) {
 }
 
 void FiltersMenu::setListTabStop(not_null<Ui::SideBarButton*> stop) {
-	// Single source of truth for the list's roving Tab-stop, wired between the
-	// main menu and the edit button. Promote `stop` to the only TabFocus item
-	// and demote the previous one, so Tab/Shift+Tab always leave the list the
-	// same way regardless of which folder is focused.
+	// Single source of truth for the list's roving Tab-stop: promote `stop`
+	// to the only TabFocus item and demote the previous one, so Tab always
+	// enters the list at the same folder. Its position in the Tab chain
+	// comes from the containers' visual order (see setup()).
 	if (const auto previous = _tabStop.get(); previous && previous != stop) {
 		previous->setFocusPolicy(Qt::ClickFocus);
 	}
 	stop->setFocusPolicy(Qt::TabFocus);
 	_tabStop = stop.get();
-	QWidget::setTabOrder(&_menu, stop.get());
-	const auto favorite = _favorite ? _favorite->entity() : nullptr;
-	if (favorite) {
-		QWidget::setTabOrder(stop.get(), favorite);
-		QWidget::setTabOrder(favorite, _setup.get());
-	} else {
-		QWidget::setTabOrder(stop.get(), _setup.get());
-	}
+
+	// The Tab-stop moved outside of any layout change, so a Tab entering
+	// the sidebar from outside would still walk to the demoted button's
+	// old chain position - rewire the visual order right away.
+	_outer.refreshVisualTabOrder();
+	_container->refreshVisualTabOrder();
 }
 
 bool FiltersMenu::listFocused() const {
@@ -797,8 +791,9 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 		auto filteredChats = [=] {
 			return _session->session().data().chatsFilters().chatsList(id);
 		};
-		Window::MenuAddMarkAsReadChatListAction(
+		MarkAsReadMenu::AddChatListAction(
 			_session,
+			MarkAsReadMenu::ChatListKind::Folder,
 			std::move(filteredChats),
 			addAction);
 
@@ -811,17 +806,11 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 			.isAttention = true,
 		});
 	} else {
-		auto customUnreadState = [=] {
-			const auto session = &_session->session();
-			return Data::MainListMapUnreadState(
-				session,
-				session->data().chatsList()->unreadState());
-		};
-		Window::MenuAddMarkAsReadChatListAction(
+		MarkAsReadMenu::AddChatListAction(
 			_session,
+			MarkAsReadMenu::ChatListKind::AllChats,
 			[=] { return _session->session().data().chatsList(); },
-			addAction,
-			std::move(customUnreadState));
+			addAction);
 
 		addAction(
 			tr::lng_filters_setup_menu(tr::now),

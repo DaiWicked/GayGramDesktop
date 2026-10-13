@@ -76,31 +76,21 @@ void ContinuousSlider::setFadeOpacity(float64 opacity) {
 }
 
 void ContinuousSlider::mouseMoveEvent(QMouseEvent *e) {
-	if (_disabled || !_mouseDown) {
-		return;
+	if (_mouseDown) {
+		updateDownValueFromPos(e->pos());
 	}
-	updateDownValueFromPos(e->pos());
 }
 
 float64 ContinuousSlider::computeValue(const QPoint &pos) const {
 	const auto seekRect = myrtlrect(getSeekRect());
-	const auto length = isHorizontal()
-		? float64(seekRect.width())
-		: float64(seekRect.height());
-	if (length <= 0.) {
-		return 0.;
-	}
-	const auto result = isHorizontal()
-		? (pos.x() - seekRect.x()) / length
-		: (1. - (pos.y() - seekRect.y()) / length);
+	const auto result = isHorizontal() ?
+		(pos.x() - seekRect.x()) / float64(seekRect.width()) :
+		(1. - (pos.y() - seekRect.y()) / float64(seekRect.height()));
 	const auto snapped = std::clamp(result, 0., 1.);
 	return _adjustCallback ? _adjustCallback(snapped) : snapped;
 }
 
 void ContinuousSlider::mousePressEvent(QMouseEvent *e) {
-	if (_disabled) {
-		return;
-	}
 	_mouseDown = true;
 	_downValue = computeValue(e->pos());
 	update();
@@ -110,10 +100,6 @@ void ContinuousSlider::mousePressEvent(QMouseEvent *e) {
 }
 
 void ContinuousSlider::mouseReleaseEvent(QMouseEvent *e) {
-	if (_disabled) {
-		_mouseDown = false;
-		return;
-	}
 	if (_mouseDown) {
 		_mouseDown = false;
 		const auto weak = base::make_weak(this);
@@ -129,7 +115,7 @@ void ContinuousSlider::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void ContinuousSlider::wheelEvent(QWheelEvent *e) {
-	if (_disabled || _mouseDown || !moveByWheel()) {
+	if (_mouseDown || !moveByWheel()) {
 		return;
 	}
 	constexpr auto step = static_cast<int>(QWheelEvent::DefaultDeltasPerStep);
@@ -141,7 +127,7 @@ void ContinuousSlider::wheelEvent(QWheelEvent *e) {
 	} else {
 		deltaX *= -1;
 	}
-	auto delta = (qAbs(deltaX) > qAbs(deltaY)) ? deltaX : deltaY;
+	auto delta = (std::abs(deltaX) > std::abs(deltaY)) ? deltaX : deltaY;
 	auto finalValue = std::clamp(_value + delta * coef, 0., 1.);
 	setValue(finalValue);
 	const auto weak = base::make_weak(this);
@@ -258,7 +244,7 @@ void FilledSlider::paintEvent(QPaintEvent *e) {
 	const auto seekRect = getSeekRect();
 	const auto value = getCurrentValue();
 	const auto from = seekRect.x();
-	const auto mid = qRound(from + value * seekRect.width());
+	const auto mid = int(base::SafeRound(from + value * seekRect.width()));
 	const auto end = from + seekRect.width();
 	if (mid > from) {
 		p.setOpacity(masterOpacity);
@@ -388,12 +374,12 @@ void MediaSlider::paintEvent(QPaintEvent *e) {
 		? _st.seekSize.width()
 		: _st.seekSize.height();
 	const auto mid = _alwaysDisplayMarker
-		? qRound(from
+		? int(base::SafeRound(from
 			+ (alwaysSeekSize / 2.)
-			+ value * (length - alwaysSeekSize))
-		: qRound(from + value * length);
+			+ value * (length - alwaysSeekSize)))
+		: int(base::SafeRound(from + value * length));
 	const auto till = horizontal
-		? std::max(mid, qRound(from + receivedTill * length))
+		? std::max(mid, int(base::SafeRound(from + receivedTill * length)))
 		: mid;
 	const auto end = from + length;
 	const auto activeFg = disabled
@@ -524,7 +510,8 @@ void MediaSlider::paintEvent(QPaintEvent *e) {
 		? 0.
 		: (_alwaysDisplayMarker ? 1. : over);
 	if (markerSizeRatio > 0) {
-		const auto position = qRound(markerFrom + value * markerLength)
+		const auto exactPosition = markerFrom + value * markerLength;
+		const auto position = int(base::SafeRound(exactPosition))
 			- (horizontal
 				? (_st.seekSize.width() / 2)
 				: (_st.seekSize.height() / 2));

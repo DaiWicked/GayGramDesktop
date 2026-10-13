@@ -17,7 +17,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "main/main_session.h"
 #include "base/crc32hash.h"
-#include "base/debug_log.h"
 #include "base/platform/win/base_windows_wrl.h"
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
@@ -425,7 +424,6 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	qApp->installNativeEventFilter(&_private->filter);
 
 	setupNativeWindowFrame();
-	setupGlassTitleBar();
 
 	SetWindowPriority(this, controller->isPrimary() ? 2 : 1);
 
@@ -471,46 +469,6 @@ void MainWindow::setupNativeWindowFrame() {
 	) | rpl::skip(1) | rpl::on_next([=](bool native, bool night) {
 		validateWindowTheme(native, night);
 	}, lifetime());
-}
-
-void MainWindow::setupGlassTitleBar() {
-	if (!Dlls::SetWindowCompositionAttribute) {
-		return;
-	}
-	if (QOperatingSystemVersion::current().microVersion() < 17134) {
-		return;
-	}
-	if (!Core::App().settings().readPref<bool>(Core::kGayGramTitleBarGlassKey, true)) {
-		return;
-	}
-	setAttribute(Qt::WA_TranslucentBackground);
-}
-
-bool MainWindow::applyGlassTitleBarAccent() {
-	if (!Dlls::SetWindowCompositionAttribute || !_hWnd) {
-		return false;
-	}
-	if (QOperatingSystemVersion::current().microVersion() < 17134) {
-		return false;
-	}
-	if (!Core::App().settings().readPref<bool>(Core::kGayGramTitleBarGlassKey, true)) {
-		return false;
-	}
-	Dlls::ACCENT_POLICY policy = { };
-	policy.AccentState = Dlls::ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND;
-	policy.AccentFlags = 2;
-	policy.GradientColor = 0x73FFFFFF;
-	Dlls::WINDOWCOMPOSITIONATTRIBDATA data = {
-		Dlls::WINDOWCOMPOSITIONATTRIB::WCA_ACCENT_POLICY,
-		&policy,
-		sizeof(policy)
-	};
-	const auto applied = Dlls::SetWindowCompositionAttribute(_hWnd, &data);
-	const auto handle = windowHandle();
-	LOG(("Glass: titlebar accent=%1 alphaBufferSize=%2"
-	).arg(applied ? 1 : 0
-	).arg(handle ? handle->format().alphaBufferSize() : -1));
-	return applied != FALSE;
 }
 
 void MainWindow::shadowsActivate() {
@@ -773,7 +731,6 @@ void MainWindow::initHook() {
 }
 
 void MainWindow::validateWindowTheme(bool native, bool night) {
-	applyGlassTitleBarAccent();
 	if (!IsWindows8OrGreater()) {
 		const auto empty = native ? nullptr : L" ";
 		SetWindowTheme(_hWnd, empty, empty);

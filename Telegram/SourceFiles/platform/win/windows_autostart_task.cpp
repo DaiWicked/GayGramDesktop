@@ -39,18 +39,6 @@ void Toggle(bool enabled, Fn<void(bool)> done) {
 	if (!base::WinRT::Supported()) {
 		return;
 	}
-	base::WinRT::Try([&] {
-		StartupTask::GetAsync(L"TelegramStartupTask").Completed([=](
-				IAsyncOperation<StartupTask> operation,
-				AsyncStatus status) {
-			base::WinRT::Try([&] {
-				const auto oldTask = operation.GetResults();
-				if (IsEnabled(oldTask.State())) {
-					oldTask.Disable();
-				}
-			});
-		});
-	});
 	const auto processEnableResult = [=](StartupTaskState state) {
 		LOG(("Startup Task: Enable finished, state: %1").arg(int(state)));
 
@@ -83,7 +71,7 @@ void Toggle(bool enabled, Fn<void(bool)> done) {
 		});
 	};
 	base::WinRT::Try([&] {
-		StartupTask::GetAsync(L"GayGramStartupTask").Completed([=](
+		StartupTask::GetAsync(L"TelegramStartupTask").Completed([=](
 				IAsyncOperation<StartupTask> operation,
 				AsyncStatus status) {
 			base::WinRT::Try([&] {
@@ -106,7 +94,7 @@ void RequestState(Fn<void(bool)> callback) {
 		callback(IsEnabled(task.State()));
 	};
 	base::WinRT::Try([&] {
-		StartupTask::GetAsync(L"GayGramStartupTask").Completed([=](
+		StartupTask::GetAsync(L"TelegramStartupTask").Completed([=](
 				IAsyncOperation<StartupTask> operation,
 				AsyncStatus status) {
 			base::WinRT::Try([&] {

@@ -7,8 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/background_preview_box.h"
 
-#include "core/application.h"
-#include "core/core_settings.h"
 #include "base/unixtime.h"
 #include "boxes/peers/edit_peer_color_box.h"
 #include "boxes/premium_preview_box.h"
@@ -217,14 +215,11 @@ BackgroundPreviewBox::BackgroundPreviewBox(
 	Resolve(&controller->session(), paper, Window::Theme::IsNightMode()))
 , _media(_paper.document() ? _paper.document()->createMediaView() : nullptr)
 , _radial([=](crl::time now) { radialAnimationCallback(now); })
-, _blurIntensity(std::clamp(
-	Core::App().settings().readPref<int>("gaygramWallpaperBlur", 50),
-	0,
-	100))
 , _appNightMode(Window::Theme::IsNightModeValue())
 , _boxDarkMode(_appNightMode.current())
 , _dimmingIntensity(std::clamp(_paper.patternIntensity(), 0, 100))
-, _dimmed((_paper.document() || _paper.localThumbnail())
+, _dimmed(_forPeer
+	&& (_paper.document() || _paper.localThumbnail())
 	&& !_paper.isPattern()) {
 	if (_media) {
 		_media->thumbnailWanted(_paper.fileOrigin());
@@ -363,9 +358,6 @@ void BackgroundPreviewBox::createDimmingSlider(bool dark) {
 	_dimmingSlider->setAlwaysDisplayMarker(true);
 	_dimmingSlider->resize(st::defaultContinuousSlider.seekSize);
 	const auto handle = [=](float64 value) {
-		if (!std::isfinite(value)) {
-			return;
-		}
 		const auto intensity = std::clamp(
 			int(base::SafeRound(value * 100)),
 			0,
@@ -399,7 +391,7 @@ void BackgroundPreviewBox::createDimmingSlider(bool dark) {
 			_dimmingWrap->move(0, top);
 		}, _dimmingWrap->lifetime());
 
-		_dimmingWrap->toggle(_paperEmojiId.isEmpty() || dark, anim::type::instant);
+		_dimmingWrap->toggle(dark, anim::type::instant);
 		_dimmingHeight = _dimmingWrap->heightValue();
 		_dimmingHeight.changes() | rpl::on_next([=] {
 			update();
@@ -559,66 +551,19 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 		[=] { return _serviceBg.value_or(QColor(255, 255, 255, 0)); });
 	_blur->show();
 
-	if (!_blurSlider) {
-		_blurSlider.create(this, st::defaultContinuousSlider);
-		_blurSlider->setAlwaysDisplayMarker(true);
-		const auto blurHandle = [=](float64 value) {
-			if (!std::isfinite(value)) {
-				return;
-			}
-			const auto intensity = std::clamp(
-				int(base::SafeRound(std::clamp(value, 0., 1.) * 100)),
-				0,
-				100);
-			if (_blurIntensity == intensity) {
-				return;
-			}
-			_blurIntensity = intensity;
-			Core::App().settings().writePref<int>(
-				"gaygramWallpaperBlur",
-				intensity);
-			_scaled = _blurred = QPixmap();
-			setScaledFromThumb();
-			update();
-		};
-		_blurSlider->setChangeProgressCallback(blurHandle);
-		_blurSlider->setChangeFinishedCallback(blurHandle);
-	}
-	_blurSlider->setValue(_blurIntensity / 100.);
-	_blurSlider->setDisabled(
-		!_blur->checked() || (_paper.document() && _full.isNull()));
-	_blurSlider->show();
-
 	rpl::combine(
 		sizeValue(),
 		_blur->sizeValue(),
 		_dimmingHeight.value()
-	) | rpl::on_next([=](
-			QSize outer,
-			QSize checkSize,
-			int dimming) {
+	) | rpl::on_next([=](QSize outer, QSize inner, int dimming) {
 		const auto bottom = st::historyPaddingBottom;
-		const auto sliderHeight = st::defaultContinuousSlider.seekSize.height();
-		const auto sliderWidth = outer.width()
-			- st::localStorageLimitMargin.left()
-			- st::localStorageLimitMargin.right();
-		const auto sliderY = outer.height()
-			- dimming
-			- bottom
-			- sliderHeight;
-		_blurSlider->resize(sliderWidth, sliderHeight);
-		_blurSlider->move((outer.width() - sliderWidth) / 2, sliderY);
 		_blur->move(
-			(outer.width() - checkSize.width()) / 2,
-			sliderY - checkSize.height() - st::defaultVerticalListSkip);
+			(outer.width() - inner.width()) / 2,
+			outer.height() - dimming - bottom - inner.height());
 	}, _blur->lifetime());
 
 	_blur->checkedChanges(
 	) | rpl::on_next([=](bool checked) {
-		if (_blurSlider) {
-			_blurSlider->setDisabled(
-				!checked || (_paper.document() && _full.isNull()));
-		}
 		checkBlurAnimationStart();
 		update();
 	}, _blur->lifetime());
@@ -628,7 +573,6 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 	if (_forBothOverlay) {
 		_forBothOverlay->raise();
 	}
-	_blurSlider->raise();
 }
 
 void BackgroundPreviewBox::apply() {
@@ -916,11 +860,11 @@ void BackgroundPreviewBox::paintEvent(QPaintEvent *e) {
 	}
 	if (!_scaled.isNull()) {
 		paintImage(p);
-		const auto dimming = _dimmed
+		const auto dimming = (_dimmed && _boxDarkMode.current())
 			? _dimmingIntensity
 			: 0;
 		if (dimming > 0) {
-			const auto alpha = 180 * dimming / 100;
+			const auto alpha = 255 * dimming / 100;
 			p.fillRect(e->rect(), QColor(0, 0, 0, alpha));
 		}
 		paintRadial(p);
@@ -938,9 +882,7 @@ void BackgroundPreviewBox::paintEvent(QPaintEvent *e) {
 				return;
 			}
 			_dimmingToggleScheduled = false;
-			_dimmingWrap->toggle(
-				_paperEmojiId.isEmpty() || _boxDarkMode.current(),
-				anim::type::normal);
+			_dimmingWrap->toggle(_boxDarkMode.current(), anim::type::normal);
 		});
 	}
 }
@@ -1071,13 +1013,11 @@ void BackgroundPreviewBox::setScaledFromThumb() {
 		_paper.backgroundColors(),
 		_paper.gradientRotation(),
 		_paper.patternOpacity(),
-		(_paper.document() && _full.isNull())
-			? Images::Option::Blur
-			: Images::Option());
-	auto blurred = _paper.isPattern()
+		_paper.document() ? Images::Option::Blur : Images::Option());
+	auto blurred = (_paper.document() || _paper.isPattern())
 		? QImage()
 		: PrepareScaledNonPattern(
-			Ui::PrepareBlurredBackground(thumbnail->original(), _blurIntensity),
+			Ui::PrepareBlurredBackground(thumbnail->original()),
 			Images::Option(0));
 	setScaledFromImage(std::move(scaled), std::move(blurred));
 }
@@ -1103,18 +1043,13 @@ void BackgroundPreviewBox::startFadeInFrom(QPixmap previous) {
 
 void BackgroundPreviewBox::checkBlurAnimationStart() {
 	if (_fadeIn.animating()
+		|| _blurred.isNull()
 		|| !_blur
 		|| _paper.isBlurred() == _blur->checked()) {
 		return;
 	}
 	_paper = _paper.withBlurred(_blur->checked());
-	if (_blurred.isNull()) {
-		_scaled = QPixmap();
-		setScaledFromThumb();
-	} else {
-		startFadeInFrom(_paper.isBlurred() ? _scaled : _blurred);
-	}
-	update();
+	startFadeInFrom(_paper.isBlurred() ? _scaled : _blurred);
 }
 
 void BackgroundPreviewBox::updateServiceBg(const std::vector<QColor> &bg) {
@@ -1187,7 +1122,7 @@ void BackgroundPreviewBox::checkLoadedDocument() {
 				patternOpacity);
 			auto blurred = !isPattern
 				? PrepareScaledNonPattern(
-					Ui::PrepareBlurredBackground(image, _blurIntensity),
+					Ui::PrepareBlurredBackground(image),
 					Images::Option(0))
 				: QImage();
 			crl::on_main(std::move(guard), [

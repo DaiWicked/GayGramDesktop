@@ -39,15 +39,6 @@ namespace {
 
 constexpr auto kBackgroundsInRow = 3;
 
-const auto kPresetGradients = std::array<QString, 6>{
-	QString("ff6b6b~ffa502"),
-	QString("0077b6~00b4d8"),
-	QString("2d6a4f~95d5b2"),
-	QString("7209b7~f72585"),
-	QString("1a1a2e~16213e"),
-	QString("ff9a9e~fecfef"),
-};
-
 QImage TakeMiddleSample(QImage original, QSize size) {
 	size *= style::DevicePixelRatio();
 	const auto from = original.size();
@@ -148,7 +139,6 @@ private:
 	std::vector<Paper> _papers;
 	uint64 _currentId = 0;
 	uint64 _insertedResetId = 0;
-	Data::WallPaper _currentPaper = Data::WallPaper(0);
 
 	Selection _over;
 	Selection _overDown;
@@ -594,24 +584,6 @@ void BackgroundBox::Inner::updatePapers() {
 		}) | ranges::to_vector;
 		pushCustomPapers();
 		sortPapers();
-		_currentPaper = _forPeer
-			? (_forPeer->wallPaper() ? *_forPeer->wallPaper() : Data::WallPaper(0))
-			: Window::Theme::Background()->paper();
-		auto presets = std::vector<Paper>();
-		for (const auto &slug : kPresetGradients) {
-			if (const auto preset = Data::WallPaper::FromColorsSlug(slug)) {
-				const auto exists = ranges::any_of(
-					_papers,
-					[&](const Paper &p) {
-						return (p.data.backgroundColors() == preset->backgroundColors())
-							&& (p.data.isPattern() == preset->isPattern());
-					});
-				if (!exists) {
-					presets.push_back(Paper{ *preset });
-				}
-			}
-		}
-		_papers.insert(begin(_papers), begin(presets), end(presets));
 	}
 	resizeToContentAndPreload();
 }
@@ -728,10 +700,7 @@ void BackgroundBox::Inner::paintPaper(
 	}
 
 	const auto over = !v::is_null(_overDown) ? _overDown : _over;
-	const auto isCurrent = (paper.data.id() == _currentId)
-		&& (!Data::IsCustomWallPaper(paper.data)
-			|| paper.data.equals(_currentPaper));
-	if (isCurrent) {
+	if (paper.data.id() == _currentId) {
 		const auto checkLeft = x + st::backgroundSize.width() - st::overviewCheckSkip - st::overviewCheck.size;
 		const auto checkTop = y + st::backgroundSize.height() - st::overviewCheckSkip - st::overviewCheck.size;
 		_check->paint(p, checkLeft, checkTop, width());
@@ -769,7 +738,7 @@ void BackgroundBox::Inner::mouseMoveEvent(QMouseEvent *e) {
 		} else if (result >= _papers.size()) {
 			return Selection();
 		}
-		auto &data = _papers[result].data;
+		const auto &data = _papers[result].data;
 		const auto deleteLeft = (column + 1) * (width + skip)
 			- st::stickerPanDeleteIconBg.width();
 		const auto deleteBottom = row * (height + skip) + skip

@@ -44,7 +44,7 @@ PreLaunchWindow::PreLaunchWindow(QString title) {
 	setWindowIcon(Window::CreateIcon());
 	setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
 
-	setWindowTitle(title.isEmpty() ? u"GayGram"_q : title);
+	setWindowTitle(title.isEmpty() ? u"AyuGram"_q : title);
 
 	QPalette p(palette());
 	p.setColor(QPalette::Window, QColor(255, 255, 255));
@@ -249,7 +249,7 @@ NotStartedWindow::NotStartedWindow()
 : _label(this)
 , _log(this)
 , _close(this) {
-	_label.setText(u"Could not start GayGram Desktop!\nYou can see complete log below:"_q);
+	_label.setText(u"Could not start AyuGram Desktop!\nYou can see complete log below:"_q);
 
 	_log.setPlainText(Logs::full());
 
@@ -321,10 +321,16 @@ LastCrashedWindow::LastCrashedWindow(
 , _launch(std::move(launch)) {
 	excludeReportUsername();
 
-	if (Core::OpenGLLastCheckFailed()) {
+#ifndef TDESKTOP_DISABLE_AUTOUPDATE
+	const auto &settings = AyuSettings::getInstance();
+	if (!settings.crashReporting()) {
+#else
+	if (true) {
+#endif
 		_sendingState = SendingNoReport;
-	} else if (_sendingState == SendingUpdateCheck) {
-		_sendingState = SendingNone;
+	} else if (Core::OpenGLLastCheckFailed()) {
+		// Nothing we can do right now with graphics driver crashes in GL.
+		_sendingState = SendingNoReport;
 	}
 	if (_sendingState != SendingNoReport) {
 		qint64 dumpsize = 0;
@@ -355,7 +361,10 @@ LastCrashedWindow::LastCrashedWindow(
 				QString name = list.at(i).fileName();
 				if (name.endsWith(qstr(".dmp"))) {
 					QDateTime modified = list.at(i).lastModified();
-					if (maxDump.isEmpty() || qAbs(workingModified.secsTo(modified)) < qAbs(workingModified.secsTo(maxDumpModified))) {
+					if (maxDump.isEmpty()
+						|| std::abs(workingModified.secsTo(modified))
+							< std::abs(
+								workingModified.secsTo(maxDumpModified))) {
 						maxDump = name;
 						maxDumpModified = modified;
 						maxDumpFull = list.at(i).absoluteFilePath();
@@ -363,7 +372,8 @@ LastCrashedWindow::LastCrashedWindow(
 					}
 				}
 			}
-			if (!maxDump.isEmpty() && qAbs(workingModified.secsTo(maxDumpModified)) < 10) {
+			if (!maxDump.isEmpty()
+				&& std::abs(workingModified.secsTo(maxDumpModified)) < 10) {
 				_minidumpName = maxDump;
 				_minidumpFull = maxDumpFull;
 			}
@@ -389,9 +399,9 @@ LastCrashedWindow::LastCrashedWindow(
 		[=] { networkSettings(); });
 
 	if (_sendingState == SendingNoReport) {
-		_label.setText(u"Last time GayGram Desktop was not closed properly."_q);
+		_label.setText(u"Last time AyuGram Desktop was not closed properly."_q);
 	} else {
-		_label.setText(u"Last time GayGram Desktop crashed :("_q);
+		_label.setText(u"Last time AyuGram Desktop crashed :("_q);
 	}
 
 	if (_updaterData) {
@@ -466,7 +476,7 @@ LastCrashedWindow::LastCrashedWindow(
 		}
 	}
 
-	_pleaseSendReport.setText(u"Crash reporting is disabled. You can save the report manually."_q);
+	_pleaseSendReport.setText(u"Please send us a crash report."_q);
 	_yourReportName.setText(u"Crash ID: %1"_q.arg(QString(_minidumpName).replace(".dmp", "")));
 	_yourReportName.setCursor(style::cur_text);
 	_yourReportName.setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -485,9 +495,9 @@ LastCrashedWindow::LastCrashedWindow(
 	});
 	_saveReport.setText(u"SAVE TO FILE"_q);
 	connect(&_saveReport, &QPushButton::clicked, [=] { saveReport(); });
-	_getApp.setText(u"GET THE LATEST VERSION OF GAYGRAM DESKTOP"_q);
+	_getApp.setText(u"GET THE LATEST VERSION OF AYUGRAM DESKTOP"_q);
 	connect(&_getApp, &QPushButton::clicked, [=] {
-		QDesktopServices::openUrl(u"https://github.com/DaiWicked/GayGramDesktop"_q);
+		QDesktopServices::openUrl(u"https://github.com/AyuGram/AyuGramDesktop"_q);
 	});
 
 	_send.setText(u"SEND CRASH REPORT"_q);
@@ -505,7 +515,7 @@ LastCrashedWindow::LastCrashedWindow(
 }
 
 void LastCrashedWindow::saveReport() {
-	QString to = QFileDialog::getSaveFileName(0, u"GayGram Crash Report"_q, QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + u"/report.telegramcrash"_q, u"Telegram crash report (*.telegramcrash)"_q);
+	QString to = QFileDialog::getSaveFileName(0, u"AyuGram Crash Report"_q, QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + u"/report.telegramcrash"_q, u"Telegram crash report (*.telegramcrash)"_q);
 	if (!to.isEmpty()) {
 		QFile file(to);
 		if (file.open(QIODevice::WriteOnly)) {
@@ -570,7 +580,20 @@ void LastCrashedWindow::addReportFieldPart(const QLatin1String &name, const QLat
 }
 
 void LastCrashedWindow::sendReport() {
-	_sendingState = SendingNone;
+	if (_checkReply) {
+		_checkReply->deleteLater();
+		_checkReply = nullptr;
+	}
+	if (_sendReply) {
+		_sendReply->deleteLater();
+		_sendReply = nullptr;
+	}
+
+	checkingFinished();
+
+	_pleaseSendReport.setText(u"Sending crash report..."_q);
+	_sendingState = SendingProgress;
+	_reportShown = false;
 	updateControls();
 }
 
@@ -591,7 +614,7 @@ void LastCrashedWindow::checkingFinished() {
 	{
 		QString version = getReportField(qstr("version"), qstr("Version:"));
 		if (!version.isEmpty()) {
-			const auto sentryVersion = QString("gaygram-desktop@%1").arg(version);
+			const auto sentryVersion = QString("ayugram-desktop@%1").arg(version);
 
 			QHttpPart reportPart;
 			reportPart.setHeader(QNetworkRequest::ContentDispositionHeader,
@@ -637,12 +660,7 @@ void LastCrashedWindow::checkingFinished() {
 		}
 	}
 
-	const auto reportUrl = u""_q;
-	if (reportUrl.isEmpty()) {
-		sendingError(QNetworkReply::UnknownServerError);
-		return;
-	}
-	_sendReply = _sendManager.post(QNetworkRequest(reportUrl), multipart);
+	_sendReply = _sendManager.post(QNetworkRequest(u"https://sentry.radolyn.com/api/2/minidump/?sentry_key=cad638b2ec4a692e57c3dcc4af1508bf"_q), multipart);
 	multipart->setParent(_sendReply);
 
 	connect(
@@ -804,6 +822,7 @@ void LastCrashedWindow::updateControls() {
 		}
 	} else {
 		h += _networkSettings.height() + padding;
+		h += padding + _send.height() + padding;
 		if (_sendingState == SendingNoReport) {
 			_pleaseSendReport.hide();
 			_yourReportName.hide();
@@ -850,17 +869,32 @@ void LastCrashedWindow::updateControls() {
 					_showReport.show();
 				}
 			}
-			_send.hide();
+			if (_sendingState == SendingDone) {
+				_send.hide();
 				_sendSkip.hide();
 				_continue.show();
 				_networkSettings.hide();
+			} else {
+				if (_sendingState == SendingProgress || _sendingState == SendingUploading) {
+					_send.hide();
+				} else {
+					_send.show();
+				}
+				_sendSkip.show();
+				if (_sendingState == SendingFail) {
+					_networkSettings.show();
+				} else {
+					_networkSettings.hide();
+				}
+				_continue.hide();
 			}
+		}
 
 		_getApp.show();
 		h += _networkSettings.height() + padding;
 	}
 
-	QSize s(2 * padding + QFontMetrics(_label.font()).horizontalAdvance(u"Last time GayGram Desktop was not closed properly."_q) + padding + _networkSettings.width(), h);
+	QSize s(2 * padding + QFontMetrics(_label.font()).horizontalAdvance(u"Last time AyuGram Desktop was not closed properly."_q) + padding + _networkSettings.width(), h);
 	if (s == size()) {
 		resizeEvent(0);
 	} else {

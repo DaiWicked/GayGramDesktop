@@ -67,6 +67,8 @@ FILE *ReportFile = nullptr;
 int ReportFileNo = 0;
 
 void SafeWriteChar(char ch) {
+	if (!ReportFile) return;
+
 	fwrite(&ch, 1, 1, ReportFile);
 }
 
@@ -419,7 +421,7 @@ StartResult Start() {
 		fclose(f);
 
 		LOG(("Opened '%1' for reading, the previous "
-			"GayGram Desktop launch was not finished properly :( "
+			"AyuGram Desktop launch was not finished properly :( "
 			"Crash log size: %2").arg(ReportPath).arg(lastdump.size()));
 
 		return lastdump;

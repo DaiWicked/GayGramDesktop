@@ -798,20 +798,7 @@ void ChatBackground::setPrepared(
 	Expects(gradient.isNull() || GoodImageFormatAndSize(gradient));
 
 	if (!prepared.isNull() && !_paper.isPattern() && _paper.isBlurred()) {
-		const auto blurStrength = Core::App().settings().readPref<int>(
-			"gaygramWallpaperBlur",
-			50);
-		prepared = Ui::PrepareBlurredBackground(std::move(prepared), blurStrength);
-	}
-	if (!prepared.isNull() && !_paper.isPattern()) {
-		const auto dimming = std::clamp(_paper.patternIntensity(), 0, 100);
-		if (dimming > 0) {
-			const auto ratio = int(prepared.devicePixelRatio());
-			auto p = QPainter(&prepared);
-			p.fillRect(
-				QRect(0, 0, prepared.width() / ratio, prepared.height() / ratio),
-				QColor(0, 0, 0, 140 * dimming / 100));
-		}
+		prepared = Ui::PrepareBlurredBackground(std::move(prepared));
 	}
 	if (adjustPaletteRequired()) {
 		if ((prepared.isNull() || _paper.isPattern())
@@ -1687,7 +1674,14 @@ std::shared_ptr<FilePrepareResult> PrepareWallPaper(
 std::unique_ptr<Ui::ChatTheme> DefaultChatThemeOn(rpl::lifetime &lifetime) {
 	auto result = std::make_unique<Ui::ChatTheme>();
 
-	const auto push = [=, raw = result.get()] {
+	// The subscription below lives in the caller-provided lifetime, while
+	// the theme is owned by the returned pointer, and callers may destroy
+	// the theme first (see the font preview in chat settings).
+	const auto push = [=, weak = base::make_weak(result.get())] {
+		const auto raw = weak.get();
+		if (!raw) {
+			return;
+		}
 		const auto background = Background();
 		const auto &paper = background->paper();
 		raw->setBackground({

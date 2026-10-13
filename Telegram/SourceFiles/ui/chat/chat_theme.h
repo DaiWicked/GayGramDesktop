@@ -66,7 +66,6 @@ struct ChatThemeBackgroundData {
 	float64 patternOpacity = 0.;
 	int darkModeDimming = 0;
 	bool isBlurred = false;
-	int blurStrength = 50;
 	bool forDarkMode = false;
 	bool generateGradient = false;
 	int gradientRotation = 0;
@@ -282,7 +281,7 @@ struct BackgroundImageFields {
 	const std::vector<QColor> &bg,
 	int gradientRotation,
 	float64 patternOpacity);
-[[nodiscard]] QImage PrepareBlurredBackground(QImage image, int strength = 50);
+[[nodiscard]] QImage PrepareBlurredBackground(QImage image);
 [[nodiscard]] QImage GenerateDitheredGradient(
 	const std::vector<QColor> &colors,
 	int rotation);

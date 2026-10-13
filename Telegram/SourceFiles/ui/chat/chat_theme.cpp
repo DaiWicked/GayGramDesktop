@@ -315,7 +315,7 @@ ChatTheme::ChatTheme(ChatThemeDescriptor &&descriptor)
 ChatTheme::~ChatTheme() = default;
 
 void ChatTheme::adjustPalette(const ChatThemeDescriptor &descriptor) {
-	auto &p = *_palette;
+	const auto &p = *_palette;
 	const auto overrideOutBg = (descriptor.bubblesData.colors.size() == 1);
 	if (overrideOutBg) {
 		set(p.msgOutBg(), descriptor.bubblesData.colors.front());
@@ -1176,18 +1176,9 @@ QImage InvertPatternImage(QImage pattern) {
 	return pattern;
 }
 
-QImage PrepareBlurredBackground(QImage image, int strength) {
+QImage PrepareBlurredBackground(QImage image) {
 	constexpr auto kSize = 900;
-	constexpr auto kMaxRadius = 15;
-	constexpr auto kDefaultRadius = 10;
-	strength = std::clamp(strength, 0, 100);
-	if (strength <= 0) {
-		return image;
-	}
-	const auto radius = (strength <= 50)
-		? std::max(1, kDefaultRadius * strength / 50)
-		: kDefaultRadius
-			+ (kMaxRadius - kDefaultRadius) * (strength - 50) / 50;
+	constexpr auto kRadius = 24;
 	if (image.width() > kSize || image.height() > kSize) {
 		image = image.scaled(
 			kSize,
@@ -1195,7 +1186,7 @@ QImage PrepareBlurredBackground(QImage image, int strength) {
 			Qt::KeepAspectRatio,
 			Qt::SmoothTransformation);
 	}
-	return Images::BlurLargeImage(std::move(image), radius);
+	return Images::BlurLargeImage(std::move(image), kRadius);
 }
 
 QImage GenerateDitheredGradient(
@@ -1254,13 +1245,13 @@ ChatThemeBackground PrepareBackgroundImage(
 		? CalculateImageMonoColor(prepared)
 		: std::nullopt;
 	if (!prepared.isNull() && !data.isPattern && data.isBlurred) {
-		prepared = PrepareBlurredBackground(std::move(prepared), data.blurStrength);
+		prepared = PrepareBlurredBackground(std::move(prepared));
 	}
 	auto gradientForFill = (data.generateGradient && data.colors.size() > 1)
 		? Ui::GenerateDitheredGradient(data.colors, data.gradientRotation)
 		: QImage();
 	return ChatThemeBackground{
-		.key = data.key + u"/blur"_q + QString::number(data.blurStrength),
+		.key = data.key,
 		.prepared = prepared,
 		.preparedForTiled = PrepareImageForTiled(prepared),
 		.gradientForFill = std::move(gradientForFill),

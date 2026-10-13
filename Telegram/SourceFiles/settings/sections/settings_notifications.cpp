@@ -517,7 +517,7 @@ void NotificationsCount::prepareNotificationSampleLarge() {
 		p.setPen(st::dialogsNameFg);
 		p.setFont(st::msgNameFont);
 
-		auto notifyTitle = st::msgNameFont->elided(u"GayGram Desktop"_q, rectForName.width());
+		auto notifyTitle = st::msgNameFont->elided(u"AyuGram Desktop"_q, rectForName.width());
 		p.drawText(rectForName.left(), rectForName.top() + st::msgNameFont->ascent, notifyTitle);
 
 		st::notifyClose.icon.paint(p, w - st::notifyClosePos.x() - st::notifyClose.width + st::notifyClose.iconPosition.x(), st::notifyClosePos.y() + st::notifyClose.iconPosition.y(), w);
@@ -588,7 +588,7 @@ void NotificationsCount::setOverCorner(ScreenCorner corner) {
 	auto &samples = _cornerSamples[static_cast<int>(_overCorner)];
 	auto samplesAlready = int(samples.size());
 	auto samplesNeeded = _oldCount;
-	auto samplesLeave = qMin(samplesAlready, samplesNeeded);
+	auto samplesLeave = std::min(samplesAlready, samplesNeeded);
 	for (int i = 0; i != samplesLeave; ++i) {
 		samples[i]->showFast();
 	}
