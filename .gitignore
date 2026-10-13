@@ -112,3 +112,6 @@ theme_build/
 theme_build2/
 theme_p1_fix/
 theme_fix_sidebar/
+
+_backup_*
+_upstream_temp
