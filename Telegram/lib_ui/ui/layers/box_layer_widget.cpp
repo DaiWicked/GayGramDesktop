@@ -14,7 +14,6 @@
 #include "styles/style_layers.h"
 #include "styles/palette.h"
 
-#include <QtGui/QPainterPath>
 #include <QtGui/QWindow>
 
 #include <limits>
@@ -118,120 +117,26 @@ QRect BoxLayerWidget::loadingRect() const {
 		size);
 }
 
-void BoxLayerWidget::setGlassBackdrop(QPixmap backdrop, QPoint offset) {
-	_glassBackdrop = std::move(backdrop);
-	_glassOffset = offset;
-	_glassMaterial = QPixmap();
-	_glassMaterialSize = QSize();
-	update();
-}
-
-const QPixmap &BoxLayerWidget::glassMaterial() {
-	const auto size = rect().size();
-	if (_glassMaterialSize == size) {
-		return _glassMaterial;
-	}
-	_glassMaterialSize = size;
-	_glassMaterial = QPixmap();
-	if (_glassBackdrop.isNull() || size.isEmpty()) {
-		return _glassMaterial;
-	}
-	const auto ratio = style::DevicePixelRatio();
-	const auto wanted = QRect(_glassOffset * ratio, size * ratio);
-	const auto source = wanted & QRect(QPoint(), _glassBackdrop.size());
-	if (source.isEmpty()) {
-		return _glassMaterial;
-	}
-	auto crop = _glassBackdrop.copy(source).toImage();
-	if (crop.isNull()) {
-		return _glassMaterial;
-	}
-	_glassMaterial = QPixmap::fromImage(
-		Ui::PrepareLiquidGlass(crop, st::boxRadius, int(ratio)));
-	_glassMaterial.setDevicePixelRatio(ratio);
-	return _glassMaterial;
-}
-
 void BoxLayerWidget::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
 	const auto clip = e->rect();
-	const auto &material = glassMaterial();
-	if (!material.isNull() && !_customCornersFilling) {
-		auto path = QPainterPath();
-		path.addRoundedRect(QRectF(rect()), st::boxRadius, st::boxRadius);
-		p.save();
-		p.setClipPath(path);
-		p.drawPixmap(rect(), material);
-		p.fillRect(rect(), st().bg);
-		p.restore();
-	} else {
-		const auto paintTopRounded = !(_customCornersFilling & RectPart::FullTop)
-			&& clip.intersects(QRect(0, 0, width(), st::boxRadius));
-		const auto paintBottomRounded = !(_customCornersFilling
-			& RectPart::FullBottom)
-			&& clip.intersects(
-				QRect(0, height() - st::boxRadius, width(), st::boxRadius));
-		if (paintTopRounded || paintBottomRounded) {
-			_roundRect.paint(p, rect(), RectPart::None
-				| (paintTopRounded ? RectPart::FullTop : RectPart::None)
-				| (paintBottomRounded ? RectPart::FullBottom : RectPart::None));
-		}
-		const auto other = e->region().intersected(
-			QRect(0, st::boxRadius, width(), height() - 2 * st::boxRadius));
-		if (!other.isEmpty()) {
-			for (const auto &rect : other) {
-				p.fillRect(rect, st().bg);
-			}
-		}
+	const auto paintTopRounded = !(_customCornersFilling & RectPart::FullTop)
+		&& clip.intersects(QRect(0, 0, width(), st::boxRadius));
+	const auto paintBottomRounded = !(_customCornersFilling
+		& RectPart::FullBottom)
+		&& clip.intersects(
+			QRect(0, height() - st::boxRadius, width(), st::boxRadius));
+	if (paintTopRounded || paintBottomRounded) {
+		_roundRect.paint(p, rect(), RectPart::None
+			| (paintTopRounded ? RectPart::FullTop : RectPart::None)
+			| (paintBottomRounded ? RectPart::FullBottom : RectPart::None));
 	}
-	{
-		auto hq = PainterHighQualityEnabler(p);
-		const auto stroke = st::glassHighlightWidth * 2;
-		const auto half = stroke / 2.;
-		const auto r = QRectF(rect()).adjusted(half, half, -half, -half);
-		const auto w = width();
-		const auto h = height();
-		p.setBrush(Qt::NoBrush);
-		{
-			auto shade = QPainterPath();
-			shade.moveTo(0, 0);
-			shade.lineTo(w, 0);
-			shade.lineTo(0, h);
-			shade.closeSubpath();
-			auto inside = QPainterPath();
-			inside.addRoundedRect(r, st::boxRadius, st::boxRadius);
-			auto g = QLinearGradient(0, 0, w, h);
-			g.setColorAt(0., QColor(0, 0, 0, 30));
-			g.setColorAt(0.35, QColor(0, 0, 0, 0));
-			p.save();
-			p.setClipPath(inside.intersected(shade));
-			p.fillRect(rect(), g);
-			p.restore();
-		}
-		{
-			auto path = QPainterPath();
-			path.moveTo(0, 0);
-			path.lineTo(w, 0);
-			path.lineTo(0, h);
-			path.closeSubpath();
-			p.save();
-			p.setClipPath(path);
-			p.setPen(QPen(st::glassHighlightFg->c, stroke));
-			p.drawRoundedRect(r, st::boxRadius, st::boxRadius);
-			p.restore();
-		}
-		{
-			auto path = QPainterPath();
-			path.moveTo(w, 0);
-			path.lineTo(w, h);
-			path.lineTo(0, h);
-			path.closeSubpath();
-			p.save();
-			p.setClipPath(path);
-			p.setPen(QPen(QColor(0, 0, 0, 70), stroke));
-			p.drawRoundedRect(r, st::boxRadius, st::boxRadius);
-			p.restore();
+	const auto other = e->region().intersected(
+		QRect(0, st::boxRadius, width(), height() - 2 * st::boxRadius));
+	if (!other.isEmpty()) {
+		for (const auto &rect : other) {
+			p.fillRect(rect, st().bg);
 		}
 	}
 	if (!_additionalTitle.current().isEmpty()

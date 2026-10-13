@@ -8,6 +8,7 @@
 
 #include "base/crc32hash.h"
 
+#include <algorithm>
 #include <set>
 #include <memory>
 #include <functional>
@@ -890,7 +891,7 @@ int GetPaletteIndex(QLatin1String name) {\n\
 
 			auto keyChar = name[checking];
 			auto usedIfForCheckCount = 0;
-			auto minimalLengthCheck = countMinimalLength(i, e, checking);
+			auto minimalLengthCheck = int(countMinimalLength(i, e, checking));
 			for (; checking + usedIfForCheckCount != name.size(); ++usedIfForCheckCount) {
 				if (!canUseIfForCheck(i, e, checking + usedIfForCheckCount)
 					|| countMinimalLength(i, e, checking + usedIfForCheckCount) != minimalLengthCheck) {
@@ -922,7 +923,9 @@ int GetPaletteIndex(QLatin1String name) {\n\
 				for (auto i = 1; i != usedIfForCheckCount; ++i) {
 					checkTypes.push_back(UsedCheckType::UpcomingIf);
 					chars.push_back(keyChar);
-					checkLengthHistory.push_back(qMax(minimalLengthCheck, checkLengthHistory.back()));
+					checkLengthHistory.push_back(std::max(
+						minimalLengthCheck,
+						checkLengthHistory.back()));
 					keyChar = name[checking + i];
 				}
 			} else {
@@ -931,7 +934,9 @@ int GetPaletteIndex(QLatin1String name) {\n\
 			}
 			++tabsUsed;
 			chars.push_back(keyChar);
-			checkLengthHistory.push_back(qMax(minimalLengthCheck, checkLengthHistory.back()));
+			checkLengthHistory.push_back(std::max(
+				minimalLengthCheck,
+				checkLengthHistory.back()));
 		}
 		source_->stream() << tabs(tabsUsed) << "return (size == " << chars.size() << ") ? " << index << " : -1;\n";
 	}

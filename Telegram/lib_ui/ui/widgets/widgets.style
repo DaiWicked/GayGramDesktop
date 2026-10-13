@@ -100,6 +100,7 @@ RoundButton {
 	width: pixels;
 	height: pixels;
 	radius: pixels;
+	fullRadius: bool;
 	padding: margins;
 
 	textTop: pixels;
@@ -492,19 +493,6 @@ MultiSelect {
 	fieldCancelSkip: pixels;
 }
 
-CallButton {
-	button: IconButton;
-	bg: color;
-	bgSize: pixels;
-	bgPosition: point;
-	angle: double;
-	outerRadius: pixels;
-	outerBg: color;
-	label: FlatLabel;
-	cornerButtonPosition: point;
-	cornerButtonBorder: pixels;
-}
-
 InnerDropdown {
 	padding: margins;
 	shadow: Shadow;
@@ -714,7 +702,7 @@ defaultLinkButton: LinkButton {
 
 defaultRippleAnimation: RippleAnimation {
 	color: windowBgRipple;
-	showDuration: 450;
+	showDuration: 650;
 	hideDuration: 200;
 }
 
@@ -725,7 +713,7 @@ defaultRippleAnimationBgOver: RippleAnimation(defaultRippleAnimation) {
 	color: windowBgOver;
 }
 
-buttonRadius: 8px;
+buttonRadius: 4px;
 
 defaultActiveButton: RoundButton {
 	textFg: activeButtonFg;
@@ -1065,7 +1053,7 @@ defaultInputField: InputField {
 
 	border: 1px;
 	borderActive: 2px;
-	borderRadius: 8px;
+	borderRadius: 0px;
 	borderDenominator: 1;
 
 	style: boxTextStyle;
@@ -1582,8 +1570,8 @@ defaultMultilineToast: Toast(defaultToast) {
 
 // Windows specific title
 
-windowTitleButtonWidth: 46px;
-windowTitleHeight: 32px;
+windowTitleButtonWidth: 36px;
+windowTitleHeight: 24px;
 windowTitleButton: IconButton {
 	width: windowTitleButtonWidth;
 	height: windowTitleHeight;

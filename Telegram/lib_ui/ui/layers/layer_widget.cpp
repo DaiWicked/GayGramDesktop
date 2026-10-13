@@ -15,176 +15,13 @@
 #include "ui/round_rect.h"
 #include "base/qt/qt_tab_key.h"
 #include "base/integration.h"
-#include "base/debug_log.h"
-#include "rpl/event_stream.h"
 #include "styles/style_layers.h"
 #include "styles/style_widgets.h"
-
-#include <QtCore/qmath.h>
 #include "styles/palette.h"
 
 #include <QtGui/QtEvents>
 
 namespace Ui {
-namespace {
-
-int g_glassBlurRadius = 24;
-rpl::event_stream<int> g_glassBlurRadiusChanges;
-constexpr auto kGlassDownscale = 2;
-constexpr auto kGlassSaturationBoost = 118;
-constexpr auto kLiquidGlassBevelWidth = 14;
-constexpr auto kLiquidGlassRefractionRatio = 0.9;
-constexpr auto kLiquidGlassHighlight = 0.8;
-constexpr auto kLiquidGlassLightComponent = 0.70710678;
-
-[[nodiscard]] QImage BoostGlassSaturation(QImage &&image) {
-	for (auto y = 0; y < image.height(); ++y) {
-		const auto row = reinterpret_cast<QRgb*>(image.scanLine(y));
-		for (auto x = 0; x < image.width(); ++x) {
-			const auto pixel = row[x];
-			const auto r = int(qRed(pixel));
-			const auto g = int(qGreen(pixel));
-			const auto b = int(qBlue(pixel));
-			const auto luma = (r * 54 + g * 183 + b * 19) >> 8;
-			const auto boost = [&](int channel) {
-				const auto mixed = luma
-					+ ((channel - luma) * kGlassSaturationBoost) / 100;
-				return std::clamp(mixed, 0, 255);
-			};
-			row[x] = qRgba(boost(r), boost(g), boost(b), qAlpha(pixel));
-		}
-	}
-	return std::move(image);
-}
-
-[[nodiscard]] QPixmap BlurGlassCache(QPixmap &&cache) {
-	if (cache.isNull()) {
-		return std::move(cache);
-	}
-	if (g_glassBlurRadius <= 0) {
-		return std::move(cache);
-	}
-	const auto start = crl::now();
-	const auto ratio = style::DevicePixelRatio();
-	auto image = cache.toImage();
-	const auto full = image.size();
-	auto small = full / kGlassDownscale;
-	if (small.width() < 1) small.setWidth(1);
-	if (small.height() < 1) small.setHeight(1);
-	image = image.scaled(
-		small,
-		Qt::IgnoreAspectRatio,
-		Qt::SmoothTransformation);
-	image = Images::BlurLargeImage(
-		std::move(image),
-		std::max(1, g_glassBlurRadius * ratio / kGlassDownscale));
-	image = BoostGlassSaturation(std::move(image));
-	image = image.scaled(
-		full,
-		Qt::IgnoreAspectRatio,
-		Qt::SmoothTransformation);
-	image.setDevicePixelRatio(ratio);
-	const auto elapsed = crl::now() - start;
-	if (elapsed > 16) {
-		LOG(("Glass blur: %1ms for %2x%3")
-			.arg(elapsed)
-			.arg(full.width())
-			.arg(full.height()));
-	}
-	return QPixmap::fromImage(std::move(image));
-}
-
-} // namespace
-
-void SetGlassBlurRadius(int radius) {
-	const auto value = std::clamp(radius, 0, 80);
-	if (g_glassBlurRadius == value) {
-		LOG(("Glass: SetGlassBlurRadius called with same value %1, skip").arg(value));
-		return;
-	}
-	g_glassBlurRadius = value;
-	LOG(("Glass: SetGlassBlurRadius changed to %1, firing event").arg(value));
-	g_glassBlurRadiusChanges.fire_copy(value);
-}
-
-int GlassBlurRadius() {
-	return g_glassBlurRadius;
-}
-
-QImage PrepareLiquidGlass(const QImage &backdrop, int radius, int dpr) {
-	if (backdrop.isNull() || backdrop.width() < 4 || backdrop.height() < 4) {
-		return backdrop;
-	}
-	auto result = backdrop.convertToFormat(QImage::Format_ARGB32);
-	const auto w = result.width();
-	const auto h = result.height();
-	const auto ratio = std::max(1, dpr);
-	const auto bevel = std::min<qreal>(
-		std::min(w, h) / 2.,
-		qreal(kLiquidGlassBevelWidth * ratio));
-	const auto refraction = bevel * kLiquidGlassRefractionRatio;
-	const auto corner = std::min<qreal>(
-		qreal(radius * ratio),
-		std::min(w, h) / 2.);
-	const auto halfW = w / 2.;
-	const auto halfH = h / 2.;
-	const auto sdf = [&](qreal x, qreal y) {
-		const auto dx = std::abs(x - halfW) - (halfW - corner);
-		const auto dy = std::abs(y - halfH) - (halfH - corner);
-		const auto ax = std::max<qreal>(dx, 0.);
-		const auto ay = std::max<qreal>(dy, 0.);
-		return qSqrt(ax * ax + ay * ay)
-			+ std::min<qreal>(std::max(dx, dy), 0.)
-			- corner;
-	};
-	const auto light = kLiquidGlassLightComponent;
-	for (auto y = 0; y < h; ++y) {
-		auto line = reinterpret_cast<QRgb*>(result.scanLine(y));
-		for (auto x = 0; x < w; ++x) {
-			const auto distance = -sdf(x + 0.5, y + 0.5);
-			if (distance > bevel * 2.) {
-				continue;
-			}
-			auto nx = sdf(x + 1.5, y + 0.5) - sdf(x - 0.5, y + 0.5);
-			auto ny = sdf(x + 0.5, y + 1.5) - sdf(x + 0.5, y - 0.5);
-			const auto length = qSqrt(nx * nx + ny * ny);
-			if (length < 0.0001) {
-				continue;
-			}
-			nx /= length;
-			ny /= length;
-			const auto progress = std::clamp(distance / bevel, 0., 1.);
-			const auto intensity = 1. - qSqrt(std::max(
-				0.,
-				1. - (1. - progress) * (1. - progress)));
-			const auto sx = std::clamp(
-				qreal(x) - intensity * refraction * nx,
-				0.,
-				qreal(w - 1));
-			const auto sy = std::clamp(
-				qreal(y) - intensity * refraction * ny,
-				0.,
-				qreal(h - 1));
-			const auto source = reinterpret_cast<const QRgb*>(
-				backdrop.constScanLine(int(sy)))[int(sx)];
-			const auto towards = std::clamp(nx * light + ny * light, 0., 1.);
-			const auto away = std::clamp(-(nx * light + ny * light), 0., 1.);
-			const auto ring = std::clamp(
-				1. - std::abs(intensity - 0.25) * 6.,
-				0.,
-				1.);
-			const auto boost = 1.
-				+ kLiquidGlassHighlight * intensity * towards
-				+ kLiquidGlassHighlight * 0.5 * away * ring;
-			line[x] = qRgba(
-				std::min(255, int(qRed(source) * boost + 0.5)),
-				std::min(255, int(qGreen(source) * boost + 0.5)),
-				std::min(255, int(qBlue(source) * boost + 0.5)),
-				qAlpha(source));
-		}
-	}
-	return result;
-}
 
 class LayerStackWidget::BackgroundWidget : public RpWidget {
 public:
@@ -192,23 +29,6 @@ public:
 
 	void setDoneCallback(Fn<void()> callback) {
 		_doneCallback = std::move(callback);
-	}
-
-	void setCacheRefreshCallback(Fn<void()> callback) {
-		_refreshCache = std::move(callback);
-	}
-
-	void requestCacheRefresh() {
-		if (_refreshPending || !_refreshCache) {
-			return;
-		}
-		_refreshPending = true;
-		crl::on_main(this, [=] {
-			_refreshPending = false;
-			if (_refreshCache) {
-				_refreshCache();
-			}
-		});
 	}
 
 	void setLayerBoxes(const QRect &specialLayerBox, const QRect &layerBox);
@@ -219,9 +39,6 @@ public:
 		QPixmap &&layerCache);
 	void removeBodyCache();
 	[[nodiscard]] bool hasBodyCache() const;
-	[[nodiscard]] const QPixmap &bodyCache() const {
-		return _bodyCache;
-	}
 	void refreshBodyCache(QPixmap &&bodyCache);
 	void startAnimation(Action action, crl::time duration = 0);
 	void skipAnimation(Action action, crl::time duration = 0);
@@ -233,7 +50,6 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent *e) override;
-	void resizeEvent(QResizeEvent *e) override;
 
 private:
 	bool isShown() const {
@@ -253,8 +69,6 @@ private:
 	QPixmap _layerCache;
 
 	Fn<void()> _doneCallback;
-	Fn<void()> _refreshCache;
-	bool _refreshPending = false;
 
 	bool _wasAnimating = false;
 	bool _inPaintEvent = false;
@@ -280,7 +94,7 @@ void LayerStackWidget::BackgroundWidget::setCacheImages(
 		QPixmap &&mainMenuCache,
 		QPixmap &&specialLayerCache,
 		QPixmap &&layerCache) {
-	_bodyCache = BlurGlassCache(std::move(bodyCache));
+	_bodyCache = std::move(bodyCache);
 	_mainMenuCache = std::move(mainMenuCache);
 	_specialLayerCache = std::move(specialLayerCache);
 	_layerCache = std::move(layerCache);
@@ -303,7 +117,7 @@ bool LayerStackWidget::BackgroundWidget::hasBodyCache() const {
 
 void LayerStackWidget::BackgroundWidget::refreshBodyCache(
 		QPixmap &&bodyCache) {
-	_bodyCache = BlurGlassCache(std::move(bodyCache));
+	_bodyCache = std::move(bodyCache);
 	setAttribute(Qt::WA_OpaquePaintEvent, !_bodyCache.isNull());
 }
 
@@ -348,19 +162,9 @@ void LayerStackWidget::BackgroundWidget::checkIfDone() {
 	}
 	_wasAnimating = false;
 	_mainMenuCache = _specialLayerCache = _layerCache = QPixmap();
-	if (!isShown()) {
-		removeBodyCache();
-	}
+	removeBodyCache();
 	if (_doneCallback) {
 		_doneCallback();
-	}
-}
-
-void LayerStackWidget::BackgroundWidget::resizeEvent(QResizeEvent *e) {
-	RpWidget::resizeEvent(e);
-	if (!_bodyCache.isNull()) {
-		removeBodyCache();
-		requestCacheRefresh();
 	}
 }
 
@@ -373,7 +177,7 @@ void LayerStackWidget::BackgroundWidget::setMainMenuShown(bool shown) {
 			_mainMenuShown ? 0. : 1.,
 			_mainMenuShown ? 1. : 0.,
 			_duration,
-			anim::easeOutQuint);
+			anim::easeOutCirc);
 	}
 	_mainMenuCacheWidth = (_mainMenuCache.width() / style::DevicePixelRatio())
 		- st::boxRoundShadow.extend.right();
@@ -414,7 +218,7 @@ void LayerStackWidget::BackgroundWidget::checkWasShown(bool wasShown) {
 			wasShown ? 1. : 0.,
 			wasShown ? 0. : 1.,
 			_duration,
-			anim::easeOutQuint);
+			anim::easeOutCirc);
 	}
 }
 
@@ -497,16 +301,13 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 		// rect above its cache with alpha_current opacity.
 		const auto region = QRegion(bg) - specialLayerBox;
 		for (const auto &rect : region) {
-			p.fillRect(rect, st::layerGlassBg);
+			p.fillRect(rect, st::layerBg);
 		}
-		const auto denominator = 1. - (overSpecialOpacity * st::layerGlassBg->c.alphaF());
-		p.setOpacity(denominator > 0.
-			? (bgOpacity - overSpecialOpacity) / denominator
-			: 1.);
-		p.fillRect(specialLayerBox, st::layerGlassBg);
+		p.setOpacity((bgOpacity - overSpecialOpacity) / (1. - (overSpecialOpacity * st::layerBg->c.alphaF())));
+		p.fillRect(specialLayerBox, st::layerBg);
 		p.setOpacity(bgOpacity);
 	} else {
-		p.fillRect(bg, st::layerGlassBg);
+		p.fillRect(bg, st::layerBg);
 	}
 
 	if (!_specialLayerCache.isNull() && specialLayerOpacity > 0) {
@@ -518,7 +319,7 @@ void LayerStackWidget::BackgroundWidget::paintEvent(QPaintEvent *e) {
 	if (!layerBox.isEmpty()) {
 		if (!_specialLayerCache.isNull()) {
 			p.setOpacity(overSpecialOpacity);
-			p.fillRect(specialLayerBox, st::layerGlassBg);
+			p.fillRect(specialLayerBox, st::layerBg);
 		}
 		if (_layerCache.isNull()) {
 			p.setOpacity(layerOpacity);
@@ -562,15 +363,6 @@ LayerStackWidget::LayerStackWidget(QWidget *parent, ShowFactory showFactory)
 	setGeometry(parentWidget()->rect());
 	hide();
 	_background->setDoneCallback([this] { animationDone(); });
-	_background->setCacheRefreshCallback([this] { setCacheImages(); });
-	g_glassBlurRadiusChanges.events() | rpl::on_next([=](int value) {
-		LOG(("Glass: event received, radius=%1, posting setCacheImages").arg(value));
-		PostponeCall(this, [=] {
-			LOG(("Glass: setCacheImages called"));
-			setCacheImages();
-			update();
-		});
-	}, lifetime());
 }
 
 void LayerWidget::setInnerFocus() {
@@ -768,21 +560,16 @@ void LayerStackWidget::setCacheImages() {
 	if (isAncestorOf(window()->focusWidget())) {
 		setFocus();
 	}
-	if (_specialLayer || currentLayer() || _mainMenu) {
+	if (_mainMenu) {
 		removeBodyCache();
 		hideChildren();
 		bodyCache = Ui::GrabWidget(parentWidget());
 		showChildren();
-	}
-	if (_mainMenu) {
 		mainMenuCache = Ui::Shadow::grab(_mainMenu, st::boxRoundShadow, RectPart::Right);
 	}
 	setAttribute(Qt::WA_OpaquePaintEvent, !bodyCache.isNull());
 	updateLayerBoxes();
 	_background->setCacheImages(std::move(bodyCache), std::move(mainMenuCache), std::move(specialLayerCache), std::move(layerCache));
-	if (const auto box = dynamic_cast<BoxLayerWidget*>(currentLayer())) {
-		box->setGlassBackdrop(_background->bodyCache(), box->pos());
-	}
 }
 
 void LayerStackWidget::closeLayer(not_null<LayerWidget*> layer) {

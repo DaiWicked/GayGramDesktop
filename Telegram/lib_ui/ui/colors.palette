@@ -96,7 +96,7 @@ tooltipFg: #5d6c80; // tooltip text
 tooltipBorderFg: #c9d1db; // tooltip border
 
 // custom title bar
-titleShadow: #0000001a; // one pixel line shadow at the bottom of custom window title
+titleShadow: #00000003; // one pixel line shadow at the bottom of custom window title
 titleBg: windowBgOver; // custom window title background when window is inactive
 titleBgActive: titleBg; // custom window title background when window is active
 titleButtonBg: titleBg; // custom window title minimize/maximize/restore button background when window is inactive (Windows only)
@@ -127,14 +127,12 @@ trayCounterFgMacInvert: #ffffff01; // tray icon counter text when tray icon is p
 
 // layers
 layerBg: #0000007f; // box and main menu background layer fade
-layerGlassBg: #ffffff1a; // liquid glass layer tint (light theme, 10% white)
-glassHighlightFg: #ffffff59; // liquid glass highlight border
 
 cancelIconFg: menuIconFg; // default for settings close icon and box search cancel icon
 cancelIconFgOver: menuIconFgOver; // default for settings close icon and box search cancel icon with mouse over
 
 // boxes
-boxBg: #ffffffd9; // box background (85% opacity for readability)
+boxBg: windowBg; // box background
 boxTextFg: windowFg; // box text
 boxTextFgGood: #4ab44a; // accepted box text (like when choosing username that is not occupied)
 boxTextFgError: #d84d4d; // rejecting box text (like when choosing username that is occupied)

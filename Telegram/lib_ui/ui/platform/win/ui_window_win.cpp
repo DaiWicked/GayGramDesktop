@@ -43,7 +43,6 @@ namespace {
 constexpr auto kDWMWCP_ROUND = DWORD(2);
 constexpr auto kDWMWCP_DONOTROUND = DWORD(1);
 constexpr auto kDWMWA_WINDOW_CORNER_PREFERENCE = DWORD(33);
-constexpr auto kDWMWA_BORDER_COLOR = DWORD(34);
 constexpr auto kDWMWA_CAPTION_COLOR = DWORD(35);
 constexpr auto kDWMWA_TEXT_COLOR = DWORD(36);
 
@@ -198,6 +197,10 @@ void WindowHelper::initInWindow(not_null<RpWindow*> window) {
 
 not_null<RpWidget*> WindowHelper::body() {
 	return _body;
+}
+
+RpWidget *WindowHelper::titleWidget() {
+	return _title.get();
 }
 
 QMargins WindowHelper::frameMargins() {
@@ -816,15 +819,6 @@ void WindowHelper::updateWindowFrameColors(bool active) {
 		_handle,
 		kDWMWA_TEXT_COLOR,
 		&fgRef,
-		sizeof(COLORREF));
-	const auto edge = active
-		? st::windowFgActive->c
-		: st::titleButtonFg->c;
-	COLORREF edgeRef = RGB(edge.red(), edge.green(), edge.blue());
-	DwmSetWindowAttribute(
-		_handle,
-		kDWMWA_BORDER_COLOR,
-		&edgeRef,
 		sizeof(COLORREF));
 }
 

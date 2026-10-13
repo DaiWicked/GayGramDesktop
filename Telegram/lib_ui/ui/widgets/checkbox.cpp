@@ -59,7 +59,7 @@ void AbstractCheckView::setChecked(bool checked, anim::type animated) {
 			_checked ? 0. : 1.,
 			_checked ? 1. : 0.,
 			AyuUiSettings::isMaterialSwitches() ? _duration : st::defaultToggleDuration,
-			anim::easeOutCubic);
+			AyuUiSettings::isMaterialSwitches() ? anim::easeOutCubic : anim::linear);
 	}
 	checkedChangedHook(animated);
 	if (changed) {

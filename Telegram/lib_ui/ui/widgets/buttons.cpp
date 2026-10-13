@@ -6,7 +6,6 @@
 //
 #include "ui/widgets/buttons.h"
 
-#include "styles/palette.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/effects/cross_animation.h"
 #include "ui/effects/numbers_animation.h"
@@ -305,16 +304,13 @@ RoundButton::RoundButton(
 , _textFull(std::move(text) | rpl::map(Text::WithEntities))
 , _st(st)
 , _roundRect(st.radius ? st.radius : st::buttonRadius, _st.textBg)
-, _roundRectOver(st.radius ? st.radius : st::buttonRadius, _st.textBgOver) {
+, _roundRectOver(st.radius ? st.radius : st::buttonRadius, _st.textBgOver)
+, _fullRadius(st.fullRadius) {
 	_textFull.value(
 	) | rpl::on_next([=](const TextWithEntities &text) {
 		accessibilityNameChanged();
 		resizeToText(text);
 	}, lifetime());
-
-	if (_st.textBg == st::activeButtonBg) {
-		_activeGradient = true;
-	}
 }
 
 void RoundButton::setTextTransform(RoundButtonTextTransform transform) {
@@ -482,71 +478,49 @@ int RoundButton::contentWidth() const {
 void RoundButton::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
-	constexpr auto kPressedScale = 0.97;
-	if (isDown() && !isDisabled()) {
-		const auto center = QPointF(width() / 2., height() / 2.);
-		p.translate(center);
-		p.scale(kPressedScale, kPressedScale);
-		p.translate(-center);
-	}
-
 	auto innerWidth = contentWidth();
 	auto rounded = rect().marginsRemoved(_st.padding);
 	if (_fullWidthOverride < 0) {
 		rounded = QRect(0, rounded.top(), innerWidth - _fullWidthOverride, rounded.height());
 	}
-	const auto hasCustomBg = _brushOverride.has_value() || _activeGradient;
-	const auto gradient = [&] {
-		const auto base = _st.textBg->c;
-		auto result = QLinearGradient(0, 0, 0, 1);
-		result.setCoordinateMode(QGradient::ObjectBoundingMode);
-		result.setColorAt(0, base.lighter(115));
-		result.setColorAt(1, base.darker(115));
-		return QBrush(result);
-	};
-	const auto background = _brushOverride
-		? *_brushOverride
-		: _activeGradient
-		? gradient()
-		: QBrush();
-	const auto drawShape = [&](const QBrush &brush) {
+	const auto drawRect = [&](const RoundRect &rect) {
 		const auto fill = myrtlrect(rounded);
-		PainterHighQualityEnabler hq(p);
-		p.setPen(_penOverride ? *_penOverride : Qt::NoPen);
-		p.setBrush(brush);
 		if (_fullRadius) {
-			const auto radius = rounded.height() / 2.;
+			const auto radius = rounded.height() / 2;
+			PainterHighQualityEnabler hq(p);
+			p.setPen(_penOverride ? *_penOverride : Qt::NoPen);
+			p.setBrush(_brushOverride ? *_brushOverride : rect.color()->b);
 			p.drawRoundedRect(fill, radius, radius);
 		} else if (_cornerRadii) {
-			p.drawPath(ComplexRoundedRectPath(
-				fill,
-				(*_cornerRadii)[0],
-				(*_cornerRadii)[1],
-				(*_cornerRadii)[2],
-				(*_cornerRadii)[3]));
-		} else {
+			auto hq = PainterHighQualityEnabler(p);
+			p.setPen(_penOverride ? *_penOverride : Qt::NoPen);
+			p.setBrush(_brushOverride ? *_brushOverride : rect.color()->b);
+			p.drawPath(
+				ComplexRoundedRectPath(
+					fill,
+					(*_cornerRadii)[0],
+					(*_cornerRadii)[1],
+					(*_cornerRadii)[2],
+					(*_cornerRadii)[3]));
+		} else if (_brushOverride) {
+			PainterHighQualityEnabler hq(p);
+			p.setPen(_penOverride ? *_penOverride : Qt::NoPen);
+			p.setBrush(*_brushOverride);
 			const auto radius = _st.radius ? _st.radius : st::buttonRadius;
 			p.drawRoundedRect(fill, radius, radius);
+		} else {
+			rect.paint(p, fill);
 		}
 	};
 	if (_penOverride && !_rippleOverride) {
 		paintRipple(p, rounded.topLeft());
 	}
-	if (hasCustomBg) {
-		drawShape(background);
-	} else {
-		_roundRect.paint(p, myrtlrect(rounded));
-	}
+	drawRect(_roundRect);
 
 	auto over = isOver();
 	auto down = isDown();
-	const auto paintOver = (over || down) && !isDisabled();
-	if (!hasCustomBg && paintOver) {
-		_roundRectOver.paint(p, myrtlrect(rounded));
-	} else if (hasCustomBg && paintOver) {
-		auto overlay = _st.textBgOver->c;
-		overlay.setAlphaF(down ? 0.55 : 0.35);
-		drawShape(overlay);
+	if (!_brushOverride && (over || down)) {
+		drawRect(_roundRectOver);
 	}
 
 	if (!_penOverride || _rippleOverride) {
@@ -613,7 +587,11 @@ QImage RoundButton::prepareRippleMask() const {
 	if (_fullWidthOverride < 0) {
 		rounded = QRect(0, rounded.top(), innerWidth - _fullWidthOverride, rounded.height());
 	}
-	if (_cornerRadii) {
+	if (_fullRadius) {
+		return RippleAnimation::RoundRectMask(
+			rounded.size(),
+			rounded.height() / 2);
+	} else if (_cornerRadii) {
 		const auto &r = *_cornerRadii;
 		return RippleAnimation::MaskByDrawer(rounded.size(), false, [&](
 				QPainter &p) {
@@ -628,11 +606,7 @@ QImage RoundButton::prepareRippleMask() const {
 	}
 	return RippleAnimation::RoundRectMask(
 		rounded.size(),
-		(_fullRadius
-			? (rounded.height() / 2)
-			: _st.radius
-			? _st.radius
-			: st::buttonRadius));
+		_st.radius ? _st.radius : st::buttonRadius);
 }
 
 QPoint RoundButton::prepareRippleStartPosition() const {
