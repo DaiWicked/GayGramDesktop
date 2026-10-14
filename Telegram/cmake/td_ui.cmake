@@ -82,6 +82,7 @@ set(style_files
     settings/sections/settings_active_sessions.style
     settings/sections/settings_premium.style
     ui/controls/filter_link_header.style
+    ui/controls/ttl_media.style
     media/view/media_view.style
     overview/overview.style
     window/window.style
