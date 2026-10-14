@@ -40,6 +40,13 @@ namespace Core {
 inline constexpr auto kScreenReaderModeDisabledKey
 	= "screen-reader-mode-disabled"_cs;
 
+inline constexpr auto kGayGramGlassStrengthKey
+	= "gaygramGlassStrength"_cs;
+inline constexpr auto kGayGramTitleBarGlassKey
+	= "gaygramTitleBarGlass"_cs;
+inline constexpr auto kGayGramSidebarWidthKey
+	= "gaygramSidebarWidth"_cs;
+
 struct WindowPosition {
 	int32 moncrc = 0;
 	int maximized = 0;

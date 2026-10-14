@@ -96,7 +96,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 							: 56;
 						Core::App().settings().writePref<int>(
 							Core::kGayGramGlassStrengthKey, radius);
-						Ui::SetGlassBlurRadius(radius);
+						// Ui::SetGlassBlurRadius(radius); // TODO: P0-2 弹窗玻璃时实现
 						controller->showToast(tr::lng_box_done(tr::now));
 					},
 				});
