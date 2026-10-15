@@ -15,6 +15,7 @@
 #include "base/algorithm.h"
 #include "base/debug_log.h"
 #include "base/integration.h"
+#include "base/random.h"
 #include "base/unique_qptr.h"
 #include "base/weak_ptr.h"
 #include "base/event_filter.h"
@@ -32,6 +33,7 @@
 #include <QtWidgets/QWidget>
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -50,10 +52,14 @@
 namespace Webview::WebKitGTK {
 namespace {
 
-using namespace gi::repository;
 using namespace gi::repository::Webview;
 using namespace Library;
-namespace GObject = gi::repository::GObject;
+namespace Gio = gi::repository::Gio;
+#if __has_include(<giounix/giounix.hpp>)
+namespace GioUnix = gi::repository::GioUnix;
+#endif // __has_include(<giounix/giounix.hpp>)
+namespace GLib = gi::repository::GLib;
+namespace GObjectCpp = gi::repository::GObject;
 
 constexpr auto kObjectPath = "/org/desktop_app/GtkIntegration/Webview";
 constexpr auto kMasterObjectPath
@@ -62,7 +68,7 @@ constexpr auto kHelperObjectPath
 	= "/org/desktop_app/GtkIntegration/Webview/Helper";
 constexpr auto kDataHost = "127.0.0.1";
 constexpr auto kExternalShellFallbackBackground = "#eeeeee";
-constexpr auto kMaxScriptMessageBytes = 1024 * 1024;
+constexpr auto kMaxScriptMessageBytes = 2 * 1024 * 1024;
 constexpr auto kExternalMessageType = "tdesktop_external_bot_webapp";
 constexpr auto kExternalShellSource = "shell";
 constexpr auto kMaxPopupAnchorDimension = 32768;
@@ -79,13 +85,118 @@ void (* const SetGraphicsApi)(QSGRendererInterface::GraphicsApi) =
 
 std::string SocketPath;
 
-[[nodiscard]] bool AllowThirdPartyCookies(WebKitCookieManager *manager) {
+[[nodiscard]] std::string GenerateMessageToken() {
+	auto bytes = std::array<std::uint8_t, 32>();
+	::base::RandomFill(bytes.data(), bytes.size());
+	constexpr auto kHex = "0123456789abcdef";
+	auto result = std::string();
+	result.reserve(bytes.size() * 2);
+	for (const auto byte : bytes) {
+		result.push_back(kHex[byte >> 4]);
+		result.push_back(kHex[byte & 0x0F]);
+	}
+	return result;
+}
+
+[[nodiscard]] bool SetCookiePolicy(
+		WebKitCookieManager *manager,
+		WebKitCookieAcceptPolicy policy) {
 	if (!manager || !webkit_cookie_manager_set_accept_policy) {
 		return false;
 	}
-	webkit_cookie_manager_set_accept_policy(
-		manager,
-		WEBKIT_COOKIE_POLICY_ACCEPT_ALWAYS);
+	webkit_cookie_manager_set_accept_policy(manager, policy);
+	return true;
+}
+
+[[nodiscard]] bool AllowThirdPartyCookies(WebKitCookieManager *manager) {
+	return SetCookiePolicy(manager, WEBKIT_COOKIE_POLICY_ACCEPT_ALWAYS);
+}
+
+[[nodiscard]] bool BlockDownloads(::GObject *owner) {
+	if (!owner
+		|| !webkit_download_cancel
+		|| !g_signal_lookup("download-started", G_OBJECT_TYPE(owner))) {
+		return false;
+	}
+	g_signal_connect(
+		owner,
+		"download-started",
+		G_CALLBACK(+[](
+				::GObject*,
+				WebKitDownload *download,
+				gpointer) {
+			webkit_download_cancel(download);
+		}),
+		nullptr);
+	return true;
+}
+
+[[nodiscard]] bool BlockNativePrompts(WebKitWebView *webview) {
+	const auto type = G_OBJECT_TYPE(webview);
+	if (!g_signal_lookup("run-file-chooser", type)) {
+		return false;
+	}
+	for (const auto signal : {
+		"run-file-chooser",
+		"run-color-chooser",
+		"print",
+	}) {
+		if (g_signal_lookup(signal, type)) {
+			g_signal_connect(
+				webview,
+				signal,
+				G_CALLBACK(+[](
+						WebKitWebView*,
+						gpointer,
+						gpointer) -> gboolean {
+					return true;
+				}),
+				nullptr);
+		}
+	}
+	return true;
+}
+
+[[nodiscard]] bool ApplyRestrictedSettings(WebKitSettings *settings) {
+	if (!settings
+		|| !webkit_settings_set_auto_load_images
+		|| !webkit_settings_set_enable_dns_prefetching
+		|| !webkit_settings_set_enable_fullscreen
+		|| !webkit_settings_set_enable_html5_database
+		|| !webkit_settings_set_enable_html5_local_storage
+		|| !webkit_settings_set_enable_hyperlink_auditing
+		|| !webkit_settings_set_enable_media
+		|| !webkit_settings_set_enable_offline_web_application_cache
+		|| !webkit_settings_set_enable_page_cache
+		|| !webkit_settings_set_enable_webaudio
+		|| !webkit_settings_set_enable_webgl
+		|| !webkit_settings_set_javascript_can_access_clipboard
+		|| !webkit_settings_set_javascript_can_open_windows_automatically
+		|| !webkit_settings_set_media_playback_requires_user_gesture) {
+		return false;
+	}
+	webkit_settings_set_auto_load_images(settings, false);
+	webkit_settings_set_enable_dns_prefetching(settings, false);
+	webkit_settings_set_enable_fullscreen(settings, false);
+	webkit_settings_set_enable_html5_database(settings, false);
+	webkit_settings_set_enable_html5_local_storage(settings, false);
+	webkit_settings_set_enable_hyperlink_auditing(settings, false);
+	webkit_settings_set_enable_media(settings, false);
+	webkit_settings_set_enable_offline_web_application_cache(settings, false);
+	webkit_settings_set_enable_page_cache(settings, false);
+	webkit_settings_set_enable_webaudio(settings, false);
+	webkit_settings_set_enable_webgl(settings, false);
+	webkit_settings_set_javascript_can_access_clipboard(settings, false);
+	webkit_settings_set_javascript_can_open_windows_automatically(
+		settings,
+		false);
+	webkit_settings_set_media_playback_requires_user_gesture(settings, true);
+	if (webkit_settings_set_enable_webrtc) {
+		webkit_settings_set_enable_webrtc(settings, false);
+	}
+	if (webkit_settings_set_enable_media_stream) {
+		webkit_settings_set_enable_media_stream(settings, false);
+	}
 	return true;
 }
 
@@ -479,6 +590,24 @@ void SetFrameExtents(GtkWidget *window, const QMargins &margins) {
 	}
 }
 
+// WebKit zooms the page by the font DPI on its own, so a CSS pixel is
+// larger than a GTK logical one, see refreshInternalScaling() in WebKit.
+[[nodiscard]] double PageScale(GtkWidget *window) {
+	auto dpi = 0.;
+	if (!gdk_screen_get_resolution || !gtk_widget_get_screen) {
+		auto value = gint();
+		g_object_get(
+			gtk_settings_get_default(),
+			"gtk-xft-dpi",
+			&value,
+			nullptr);
+		dpi = value / 1024.;
+	} else if (const auto screen = gtk_widget_get_screen(window)) {
+		dpi = gdk_screen_get_resolution(screen);
+	}
+	return (dpi > 0.) ? (dpi / 96.) : 1.;
+}
+
 class Instance final : public Interface, public ::base::has_weak_ptr {
 public:
 	Instance(
@@ -498,6 +627,7 @@ public:
 	void reload() override;
 
 	void init(std::string js) override;
+	void initAllFrames(std::string js) override;
 	void eval(std::string js) override;
 
 	void focus() override;
@@ -518,6 +648,9 @@ public:
 
 private:
 	void scriptMessageReceived(void *message);
+	void addUserScript(
+		std::string js,
+		WebKitUserContentInjectedFrames frames);
 	bool handleShellControlMessage(const std::string &message);
 	void beginShellMove(const QJsonObject &arguments);
 	void beginShellResize(const QJsonObject &arguments);
@@ -604,6 +737,7 @@ private:
 	bool _fullscreen = false;
 	GdkToplevel *_frameExtentsToplevel = nullptr;
 	gulong _frameExtentsComputeSizeHandler = 0;
+	gulong _xftDpiChangedHandler = 0;
 
 	bool _debug = false;
 	std::function<void(Message)> _messageHandler;
@@ -615,9 +749,13 @@ private:
 	rpl::variable<NavigationHistoryState> _navigationHistoryState;
 	std::function<DataResult(DataRequest)> _dataRequestHandler;
 	Fn<void()> _interactionHandler;
+	std::string _dataRequestRedirectHost;
+	std::string _restrictedOrigin;
+	std::string _restrictedContentSecurityPolicy;
 	std::uint16_t _dataPort = 0;
 	std::string _dataPassword;
 	std::string _shellMessageToken;
+	std::string _messageToken = GenerateMessageToken();
 	int _scriptDialogDepth = 0;
 	std::vector<std::string> _queuedScriptDialogEvals;
 	bool _loadFailed = false;
@@ -633,7 +771,9 @@ Instance::Instance(bool remoting, WindowMode mode)
 		_platform = ::Platform::IsX11()
 			? Platform::X11
 #ifdef DESKTOP_APP_WEBVIEW_WAYLAND_COMPOSITOR
-			: Platform::Wayland;
+			: (_mode == WindowMode::Embedded
+				? Platform::Wayland
+				: Platform::Any);
 #else // DESKTOP_APP_WEBVIEW_WAYLAND_COMPOSITOR
 			: Platform::Any;
 #endif // !DESKTOP_APP_WEBVIEW_WAYLAND_COMPOSITOR
@@ -648,6 +788,11 @@ Instance::~Instance() {
 	}
 	if (_backgroundProvider) {
 		g_object_unref(_backgroundProvider);
+	}
+	if (_xftDpiChangedHandler) {
+		g_signal_handler_disconnect(
+			gtk_settings_get_default(),
+			_xftDpiChangedHandler);
 	}
 	if (_window) {
 		if (_frameExtentsToplevel && _frameExtentsComputeSizeHandler) {
@@ -716,7 +861,14 @@ bool Instance::create(Config config) {
 #endif // !DESKTOP_APP_WEBVIEW_WAYLAND_COMPOSITOR
 	}
 
-	_debug = config.debug;
+	_restrictedOrigin = std::move(config.restrictedOrigin);
+	_restrictedContentSecurityPolicy = std::move(
+		config.restrictedContentSecurityPolicy);
+	if (!_restrictedOrigin.empty()
+		&& _restrictedContentSecurityPolicy.empty()) {
+		return false;
+	}
+	_debug = config.debug && _restrictedOrigin.empty();
 	_messageHandler = std::move(config.messageHandler);
 	_navigationStartHandler = std::move(config.navigationStartHandler);
 	_navigationDoneHandler = std::move(config.navigationDoneHandler);
@@ -724,6 +876,7 @@ bool Instance::create(Config config) {
 	_dialogHandler = std::move(config.dialogHandler);
 	_asyncDialogHandler = std::move(config.asyncDialogHandler);
 	_dataRequestHandler = std::move(config.dataRequestHandler);
+	_dataRequestRedirectHost = std::move(config.dataRequestRedirectHost);
 	_windowStyle = config.windowStyle;
 	_windowMargins = config.windowMargins;
 	_shellMessageToken = std::move(config.shellMessageToken);
@@ -747,6 +900,9 @@ bool Instance::create(Config config) {
 		const auto margins = config.windowMargins;
 		const auto initialSize = config.initialSize;
 		const auto allowThirdPartyCookies = config.allowThirdPartyCookies;
+		const auto restrictedOrigin = _restrictedOrigin;
+		const auto restrictedContentSecurityPolicy
+			= _restrictedContentSecurityPolicy;
 		_helper.call_create(
 			debug,
 			r,
@@ -764,8 +920,10 @@ bool Instance::create(Config config) {
 			initialSize.width(),
 			initialSize.height(),
 			allowThirdPartyCookies,
+			restrictedOrigin,
+			restrictedContentSecurityPolicy,
 			crl::guard(&guard, [&](
-					GObject::Object source_object,
+					GObjectCpp::Object source_object,
 					Gio::AsyncResult res) {
 				success = _helper.call_create_finish(res, nullptr);
 				GLib::MainContext::default_().wakeup();
@@ -781,6 +939,8 @@ bool Instance::create(Config config) {
 
 		if (_mode == WindowMode::External) {
 			_widget = ::base::make_unique_q<QWidget>(config.parent);
+			return true;
+		} else if (_mode == WindowMode::Hidden) {
 			return true;
 		}
 
@@ -824,7 +984,7 @@ bool Instance::create(Config config) {
 	}
 
 	_window = (_platform == Platform::X11)
-		&& (_mode != WindowMode::External)
+		&& (_mode == WindowMode::Embedded)
 		? gtk_plug_new(0)
 		: gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	if (_mode == WindowMode::External) {
@@ -832,10 +992,11 @@ bool Instance::create(Config config) {
 			gtk_window_set_decorated(GTK_WINDOW(_window), FALSE);
 		}
 		if (config.initialSize.width() > 0 && config.initialSize.height() > 0) {
+			const auto size = config.initialSize * PageScale(_window);
 			gtk_window_set_default_size(
 				GTK_WINDOW(_window),
-				config.initialSize.width(),
-				config.initialSize.height());
+				size.width(),
+				size.height());
 		}
 		const auto windowType = G_OBJECT_TYPE(_window);
 		if (g_signal_lookup("close-request", windowType)) {
@@ -856,7 +1017,7 @@ bool Instance::create(Config config) {
 				this);
 		}
 	}
-	const auto customPainting = (_mode != WindowMode::External)
+	const auto customPainting = (_mode == WindowMode::Embedded)
 		|| customWindowFrame();
 	if (customPainting && gtk_widget_set_app_paintable) {
 		gtk_widget_set_app_paintable(_window, TRUE);
@@ -889,46 +1050,102 @@ bool Instance::create(Config config) {
 	const auto baseCache = base + "/cache";
 	const auto baseData = base + "/data";
 
+	const auto restricted = !_restrictedOrigin.empty();
+	if (restricted
+		&& !webkit_web_view_get_default_content_security_policy) {
+		return false;
+	}
 	if (webkit_network_session_new) {
-		WebKitNetworkSession *session = webkit_network_session_new(
-			baseData.c_str(),
-			baseCache.c_str());
-		if (config.allowThirdPartyCookies) {
+		const auto session = restricted
+			? (webkit_network_session_new_ephemeral
+				? webkit_network_session_new_ephemeral()
+				: nullptr)
+			: webkit_network_session_new(
+				baseData.c_str(),
+				baseCache.c_str());
+		if (!session) {
+			return false;
+		}
+		if (restricted || config.allowThirdPartyCookies) {
 			const auto manager = webkit_network_session_get_cookie_manager
 				? webkit_network_session_get_cookie_manager(session)
 				: nullptr;
-			if (!AllowThirdPartyCookies(manager)) {
+			const auto policySet = restricted
+				? SetCookiePolicy(
+					manager,
+					WEBKIT_COOKIE_POLICY_ACCEPT_NEVER)
+				: AllowThirdPartyCookies(manager);
+			if (!policySet) {
 				g_critical("Cookie policy API is unavailable.");
 				g_object_unref(session);
 				return false;
 			}
 		}
-		_webview = WEBKIT_WEB_VIEW(g_object_new(
-			WEBKIT_TYPE_WEB_VIEW,
-			"network-session",
-			session,
-			nullptr));
+		if (restricted && !BlockDownloads(G_OBJECT(session))) {
+			g_object_unref(session);
+			return false;
+		}
+		_webview = restricted
+			? WEBKIT_WEB_VIEW(g_object_new(
+				WEBKIT_TYPE_WEB_VIEW,
+				"network-session",
+				session,
+				"default-content-security-policy",
+				_restrictedContentSecurityPolicy.c_str(),
+				nullptr))
+			: WEBKIT_WEB_VIEW(g_object_new(
+				WEBKIT_TYPE_WEB_VIEW,
+				"network-session",
+				session,
+				nullptr));
 		g_object_unref(session);
 	} else {
-		WebKitWebsiteDataManager *data = webkit_website_data_manager_new(
-			"base-cache-directory", baseCache.c_str(),
-			"base-data-directory", baseData.c_str(),
-			nullptr);
-		if (config.allowThirdPartyCookies) {
+		const auto data = restricted
+			? (webkit_website_data_manager_new_ephemeral
+				? webkit_website_data_manager_new_ephemeral()
+				: nullptr)
+			: webkit_website_data_manager_new(
+				"base-cache-directory", baseCache.c_str(),
+				"base-data-directory", baseData.c_str(),
+				nullptr);
+		if (!data) {
+			return false;
+		}
+		if (restricted || config.allowThirdPartyCookies) {
 			const auto manager = webkit_website_data_manager_get_cookie_manager
 				? webkit_website_data_manager_get_cookie_manager(data)
 				: nullptr;
-			if (!AllowThirdPartyCookies(manager)) {
+			const auto policySet = restricted
+				? SetCookiePolicy(
+					manager,
+					WEBKIT_COOKIE_POLICY_ACCEPT_NEVER)
+				: AllowThirdPartyCookies(manager);
+			if (!policySet) {
 				g_critical("Cookie policy API is unavailable.");
 				g_object_unref(data);
 				return false;
 			}
 		}
-		WebKitWebContext *context
+		const auto context
 			= webkit_web_context_new_with_website_data_manager(data);
 		g_object_unref(data);
+		if (restricted && webkit_web_context_set_sandbox_enabled) {
+			webkit_web_context_set_sandbox_enabled(context, true);
+		}
+		if (restricted && !BlockDownloads(G_OBJECT(context))) {
+			g_object_unref(context);
+			return false;
+		}
 
-		_webview = WEBKIT_WEB_VIEW(webkit_web_view_new_with_context(context));
+		_webview = restricted
+			? WEBKIT_WEB_VIEW(g_object_new(
+				WEBKIT_TYPE_WEB_VIEW,
+				"web-context",
+				context,
+				"default-content-security-policy",
+				_restrictedContentSecurityPolicy.c_str(),
+				nullptr))
+			: WEBKIT_WEB_VIEW(webkit_web_view_new_with_context(context));
 		g_object_unref(context);
 	}
 
@@ -958,6 +1175,17 @@ bool Instance::create(Config config) {
 		G_CALLBACK(+[](Instance *instance) {
 			instance->announceCustomWindowFrame();
 			instance->updateWindowFrameExtents();
+		}),
+		this);
+	_xftDpiChangedHandler = g_signal_connect_swapped(
+		gtk_settings_get_default(),
+		"notify::gtk-xft-dpi",
+		G_CALLBACK(+[](Instance *instance) {
+			// GTK 4 takes the shadow width only in compute-size.
+			instance->updateWindowFrameExtents();
+			if (instance->_window) {
+				gtk_widget_queue_resize(instance->_window);
+			}
 		}),
 		this);
 	g_signal_connect_swapped(
@@ -1067,6 +1295,9 @@ bool Instance::create(Config config) {
 			return instance->scriptDialog(dialog);
 		}),
 		this);
+	if (restricted && !BlockNativePrompts(_webview)) {
+		return false;
+	}
 	g_signal_connect_swapped(
 		_webview,
 		"authenticate",
@@ -1168,9 +1399,18 @@ bool Instance::create(Config config) {
 			float(config.opaqueBg.blueF()),
 			float(config.opaqueBg.alphaF()) };
 	webkit_web_view_set_background_color(_webview, &rgba);
+	const auto settings = webkit_web_view_get_settings(_webview);
 	if (_debug) {
-		WebKitSettings *settings = webkit_web_view_get_settings(_webview);
 		webkit_settings_set_enable_developer_extras(settings, true);
+	}
+	if (restricted) {
+		if (!ApplyRestrictedSettings(settings)
+			|| !webkit_web_view_set_is_muted
+			|| !webkit_permission_request_deny
+			|| !webkit_authentication_request_cancel) {
+			return false;
+		}
+		webkit_web_view_set_is_muted(_webview, true);
 	}
 	if (gtk_window_set_child) {
 		if (gtk_graphics_offload_new) {
@@ -1192,17 +1432,22 @@ bool Instance::create(Config config) {
 	} else {
 		gtk_container_add(GTK_CONTAINER(_window), GTK_WIDGET(_webview));
 	}
-	if (!gtk_widget_show_all) {
-		gtk_widget_set_visible(_window, true);
-	} else {
-		gtk_widget_show_all(_window);
+	if (_mode != WindowMode::Hidden) {
+		if (!gtk_widget_show_all) {
+			gtk_widget_set_visible(_window, true);
+		} else {
+			gtk_widget_show_all(_window);
+		}
 	}
 	updateWindowFrameExtents();
-	init(R"(
+	init(std::string(R"(
 if (window === window.top) {
+	const messageToken = ')") + _messageToken + R"(';
+	const handler = window.webkit.messageHandlers.external;
+	const postMessage = handler.postMessage.bind(handler);
 	const external = Object.freeze({
 		invoke: function(s) {
-			window.webkit.messageHandlers.external.postMessage(s);
+			postMessage(messageToken + s);
 		}
 	});
 	Object.defineProperty(window, 'external', {
@@ -1216,17 +1461,20 @@ if (window === window.top) {
 }
 
 void Instance::scriptMessageReceived(void *message) {
-	const auto text = JavascriptMessageText(message);
-	if (text.size() > kMaxScriptMessageBytes) {
+	const auto received = JavascriptMessageText(message);
+	if (received.size() > kMaxScriptMessageBytes + _messageToken.size()
+		|| !received.starts_with(_messageToken)) {
 		return;
 	}
+	const auto text = received.substr(_messageToken.size());
 	if (handleShellControlMessage(text)) {
 		return;
 	}
 	if (!_master) {
 		return;
 	}
-	_master.call_message_received(text, nullptr);
+	const auto sourceUrl = webkit_web_view_get_uri(_webview);
+	_master.call_message_received(text, sourceUrl ? sourceUrl : "", nullptr);
 }
 
 bool Instance::handleShellControlMessage(const std::string &message) {
@@ -1340,7 +1588,7 @@ void Instance::announceCustomWindowFrame() {
 
 QMargins Instance::windowFrameExtents() const {
 	return (!_fullscreen && customWindowFrame() && _windowSupportsAlpha)
-		? _windowMargins
+		? _windowMargins * PageScale(_window)
 		: QMargins();
 }
 
@@ -1408,6 +1656,26 @@ void Instance::loadChanged(WebKitLoadEvent loadEvent) {
 bool Instance::decidePolicy(
 		WebKitPolicyDecision *decision,
 		WebKitPolicyDecisionType decisionType) {
+	if (decisionType == WEBKIT_POLICY_DECISION_TYPE_RESPONSE
+		&& !_restrictedOrigin.empty()
+		&& webkit_response_policy_decision_is_main_frame_main_resource) {
+		const auto responseDecision = WEBKIT_RESPONSE_POLICY_DECISION(decision);
+		if (!webkit_response_policy_decision_is_main_frame_main_resource(
+				responseDecision)) {
+			return false;
+		}
+		const auto response = webkit_response_policy_decision_get_response(
+			responseDecision);
+		const auto mime = response
+			? webkit_uri_response_get_mime_type(response)
+			: nullptr;
+		if (!mime || g_ascii_strcasecmp(mime, "text/html")) {
+			webkit_policy_decision_ignore(decision);
+			_loadFailed = true;
+			return true;
+		}
+		return false;
+	}
 	if (decisionType != WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION) {
 		return false;
 	}
@@ -1422,7 +1690,7 @@ bool Instance::decidePolicy(
 	if (_master) {
 		auto loop = GLib::MainLoop::new_();
 		_master.call_navigation_started(uri, false, [&](
-				GObject::Object source_object,
+				GObjectCpp::Object source_object,
 				Gio::AsyncResult res) {
 			if (const auto ret = _master.call_navigation_started_finish(
 					res)) {
@@ -1446,13 +1714,16 @@ bool Instance::decidePolicy(
 }
 
 GtkWidget *Instance::createAnother(WebKitNavigationAction *action) {
+	if (!_restrictedOrigin.empty()) {
+		return nullptr;
+	}
 	WebKitURIRequest *request = webkit_navigation_action_get_request(action);
 	const std::string uri = webkit_uri_request_get_uri(request);
 	if (!_master) {
 		return nullptr;
 	}
 	_master.call_navigation_started(uri, true, [=](
-			GObject::Object source_object,
+			GObjectCpp::Object source_object,
 			Gio::AsyncResult res) {
 		const auto ret = _master.call_navigation_started_finish(res);
 		if (!ret || !std::get<1>(*ret)) {
@@ -1482,6 +1753,14 @@ GtkWidget *Instance::createAnother(WebKitNavigationAction *action) {
 
 bool Instance::scriptDialog(WebKitScriptDialog *dialog) {
 	const auto type = webkit_script_dialog_get_dialog_type(dialog);
+	if (!_restrictedOrigin.empty()) {
+		if (type == WEBKIT_SCRIPT_DIALOG_PROMPT) {
+			webkit_script_dialog_prompt_set_text(dialog, nullptr);
+		} else if (type != WEBKIT_SCRIPT_DIALOG_ALERT) {
+			webkit_script_dialog_confirm_set_confirmed(dialog, false);
+		}
+		return true;
+	}
 	const auto text = webkit_script_dialog_get_message(dialog);
 	const auto value = (type == WEBKIT_SCRIPT_DIALOG_PROMPT)
 		? webkit_script_dialog_prompt_get_default_text(dialog)
@@ -1500,7 +1779,7 @@ bool Instance::scriptDialog(WebKitScriptDialog *dialog) {
 			type,
 			text ? text : "",
 			value ? value : "",
-			[&](GObject::Object source_object, Gio::AsyncResult res) {
+			[&](GObjectCpp::Object source_object, Gio::AsyncResult res) {
 				if (const auto ret = _master.call_script_dialog_finish(res)) {
 					std::tie(std::ignore, accepted, result) = *ret;
 				}
@@ -1519,6 +1798,10 @@ bool Instance::scriptDialog(WebKitScriptDialog *dialog) {
 }
 
 bool Instance::authenticate(WebKitAuthenticationRequest *request) {
+	if (!_restrictedOrigin.empty()) {
+		webkit_authentication_request_cancel(request);
+		return true;
+	}
 	if (strcmp(webkit_authentication_request_get_host(request), kDataHost)
 			|| webkit_authentication_request_get_port(request) != _dataPort) {
 		return false;
@@ -1533,6 +1816,10 @@ bool Instance::authenticate(WebKitAuthenticationRequest *request) {
 }
 
 bool Instance::permissionRequest(WebKitPermissionRequest *request) {
+	if (!_restrictedOrigin.empty() && webkit_permission_request_deny) {
+		webkit_permission_request_deny(request);
+		return true;
+	}
 	// navigator.clipboard.read/readText() asks for this one. Never let the
 	// page read the clipboard on its own, the embedder is expected to expose
 	// its own method for that, gated on a real user interaction.
@@ -1555,6 +1842,7 @@ bool Instance::startDataServer() {
 
 	_dataServer.emplace(
 		(_dataPassword = GLib::uuid_string_random()).c_str(),
+		QByteArray::fromStdString(_dataRequestRedirectHost),
 		[=](
 				QTcpSocket *socket,
 				const QByteArray &id,
@@ -1713,7 +2001,7 @@ ResolveResult Instance::resolve() {
 		const ::base::has_weak_ptr guard;
 		std::optional<ResolveResult> result;
 		_helper.call_resolve(crl::guard(&guard, [&](
-				GObject::Object source_object,
+				GObjectCpp::Object source_object,
 				Gio::AsyncResult res) {
 			const auto reply = _helper.call_resolve_finish(res);
 			if (reply) {
@@ -1799,13 +2087,32 @@ void Instance::init(std::string js) {
 		return;
 	}
 
+	addUserScript(std::move(js), WEBKIT_USER_CONTENT_INJECT_TOP_FRAME);
+}
+
+void Instance::initAllFrames(std::string js) {
+	if (_remoting) {
+		if (!_helper) {
+			return;
+		}
+
+		_helper.call_init_all_frames(js, nullptr);
+		return;
+	}
+
+	addUserScript(std::move(js), WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES);
+}
+
+void Instance::addUserScript(
+		std::string js,
+		WebKitUserContentInjectedFrames frames) {
 	WebKitUserContentManager *manager
 		= webkit_web_view_get_user_content_manager(_webview);
 	webkit_user_content_manager_add_script(
 		manager,
 		webkit_user_script_new(
 			js.c_str(),
-			WEBKIT_USER_CONTENT_INJECT_TOP_FRAME,
+			frames,
 			WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START,
 			nullptr,
 			nullptr));
@@ -2062,7 +2369,7 @@ void *Instance::winId() {
 		const ::base::has_weak_ptr guard;
 		std::optional<void*> ret;
 		_helper.call_get_win_id(crl::guard(&guard, [&](
-				GObject::Object source_object,
+				GObjectCpp::Object source_object,
 				Gio::AsyncResult res) {
 			const auto reply = _helper.call_get_win_id_finish(res);
 			ret = reply
@@ -2083,7 +2390,7 @@ void *Instance::winId() {
 		return xid ? reinterpret_cast<void*>(xid) : nullptr;
 	}
 
-	return (_platform == Platform::X11)
+	return (_mode == WindowMode::Embedded && _platform == Platform::X11)
 		? reinterpret_cast<void*>(gtk_plug_get_id(GTK_PLUG(_window)))
 		: nullptr;
 }
@@ -2159,7 +2466,7 @@ bool Instance::notifyExternalWindowClosed() {
 	_externalWindowClosePending = true;
 	const auto weak = ::base::make_weak(this);
 	_master.call_external_window_closed([=](
-			GObject::Object,
+			GObjectCpp::Object,
 			Gio::AsyncResult res) {
 		if (const auto instance = weak.get()) {
 			instance->_externalWindowClosePending = false;
@@ -2190,7 +2497,7 @@ PopupAnchor Instance::popupAnchor() {
 		const ::base::has_weak_ptr guard;
 		std::optional<PopupAnchor> ret;
 		_helper.call_get_window_anchor(crl::guard(&guard, [&](
-				GObject::Object source_object,
+				GObjectCpp::Object source_object,
 				Gio::AsyncResult res) {
 			auto result = PopupAnchor();
 			if (const auto reply = _helper.call_get_window_anchor_finish(res)) {
@@ -2456,7 +2763,7 @@ void Instance::startProcess() {
 			Gio::DBusProxyFlags::NONE_,
 			kHelperObjectPath,
 			crl::guard(&guard, [&](
-					GObject::Object source_object,
+					GObjectCpp::Object source_object,
 					Gio::AsyncResult res) {
 				auto helper = HelperProxy::new_finish(res);
 				if (!helper) {
@@ -2566,9 +2873,13 @@ void Instance::registerMasterMethodHandlers() {
 	_master.signal_handle_message_received().connect([=](
 			Master,
 			Gio::DBusMethodInvocation invocation,
-			const std::string &message) {
+			const std::string &message,
+			const std::string &sourceUrl) {
 		if (_messageHandler) {
-			_messageHandler(Message{ .text = message });
+			_messageHandler(Message{
+				.text = message,
+				.sourceUrl = sourceUrl,
+			});
 			_master.complete_message_received(invocation);
 		} else {
 			invocation.return_gerror(MethodError());
@@ -2757,7 +3068,7 @@ int Instance::exec() {
 		*connection,
 		Gio::DBusProxyFlags::NONE_,
 		kMasterObjectPath,
-		[&](GObject::Object source_object, Gio::AsyncResult res) {
+		[&](GObjectCpp::Object source_object, Gio::AsyncResult res) {
 			auto master = MasterProxy::new_finish(res);
 			if (!master) {
 				error = true;
@@ -2767,7 +3078,7 @@ int Instance::exec() {
 			}
 			_master = *master;
 			_master.call_get_start_data([&](
-					GObject::Object source_object,
+					GObjectCpp::Object source_object,
 					Gio::AsyncResult res) {
 				const auto settings = _master.call_get_start_data_finish(
 					res);
@@ -2838,7 +3149,9 @@ void Instance::registerHelperMethodHandlers() {
 			int marginBottom,
 			int initialWidth,
 			int initialHeight,
-			bool allowThirdPartyCookies) {
+			bool allowThirdPartyCookies,
+			const std::string &restrictedOrigin,
+			const std::string &restrictedContentSecurityPolicy) {
 		if (create({
 			.opaqueBg = QColor(r, g, b, a),
 			.userDataPath = path,
@@ -2853,6 +3166,9 @@ void Instance::registerHelperMethodHandlers() {
 				marginBottom),
 			.initialSize = QSize(initialWidth, initialHeight),
 			.shellMessageToken = shellMessageToken,
+			.restrictedOrigin = restrictedOrigin,
+			.restrictedContentSecurityPolicy
+				= restrictedContentSecurityPolicy,
 		})) {
 			_helper.complete_create(invocation);
 		} else {
@@ -2920,6 +3236,15 @@ void Instance::registerHelperMethodHandlers() {
 			const std::string &js) {
 		init(js);
 		_helper.complete_init(invocation);
+		return true;
+	});
+
+	_helper.signal_handle_init_all_frames().connect([=](
+			Helper,
+			Gio::DBusMethodInvocation invocation,
+			const std::string &js) {
+		initAllFrames(js);
+		_helper.complete_init_all_frames(invocation);
 		return true;
 	});
 
@@ -2996,6 +3321,11 @@ Available Availability() {
 		.customRangeRequests = success,
 		.customReferer = success,
 	};
+}
+
+bool HiddenSupported() {
+	Instance instance(true, WindowMode::Hidden);
+	return instance.resolve() == ResolveResult::Success;
 }
 
 std::unique_ptr<Interface> CreateInstance(Config config) {

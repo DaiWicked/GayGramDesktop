@@ -62,6 +62,9 @@
 #define WEBKIT_TYPE_NAVIGATION_POLICY_DECISION (webkit_navigation_policy_decision_get_type())
 #define WEBKIT_NAVIGATION_POLICY_DECISION(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), WEBKIT_TYPE_NAVIGATION_POLICY_DECISION, WebKitNavigationPolicyDecision))
 
+#define WEBKIT_TYPE_RESPONSE_POLICY_DECISION (webkit_response_policy_decision_get_type())
+#define WEBKIT_RESPONSE_POLICY_DECISION(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), WEBKIT_TYPE_RESPONSE_POLICY_DECISION, WebKitResponsePolicyDecision))
+
 #define WEBKIT_TYPE_WEB_VIEW (webkit_web_view_get_type())
 #define WEBKIT_WEB_VIEW(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), WEBKIT_TYPE_WEB_VIEW, WebKitWebView))
 
@@ -84,6 +87,7 @@ typedef struct _GdkVisual GdkVisual;
 typedef struct _GdkWindow GdkWindow;
 typedef struct _GtkContainer GtkContainer;
 typedef struct _GtkNative GtkNative;
+typedef struct _GtkSettings GtkSettings;
 typedef struct _GtkWidget GtkWidget;
 typedef struct _GtkWindow GtkWindow;
 typedef struct _GtkPlug GtkPlug;
@@ -116,7 +120,9 @@ typedef struct _WebKitJavascriptResult WebKitJavascriptResult;
 typedef struct _WebKitNavigationAction WebKitNavigationAction;
 typedef struct _WebKitNavigationPolicyDecision WebKitNavigationPolicyDecision;
 typedef struct _WebKitPolicyDecision WebKitPolicyDecision;
+typedef struct _WebKitResponsePolicyDecision WebKitResponsePolicyDecision;
 typedef struct _WebKitURIRequest WebKitURIRequest;
+typedef struct _WebKitURIResponse WebKitURIResponse;
 typedef struct _WebKitUserContentManager WebKitUserContentManager;
 typedef struct _WebKitUserScript WebKitUserScript;
 typedef struct _WebKitWebView WebKitWebView;
@@ -126,6 +132,7 @@ typedef struct _WebKitWebsiteDataManager WebKitWebsiteDataManager;
 typedef struct _WebKitWebContext WebKitWebContext;
 typedef struct _WebKitNetworkSession WebKitNetworkSession;
 typedef struct _WebKitCookieManager WebKitCookieManager;
+typedef struct _WebKitDownload WebKitDownload;
 typedef struct _WebKitAuthenticationRequest WebKitAuthenticationRequest;
 typedef struct _WebKitCredential WebKitCredential;
 typedef struct _WebKitPermissionRequest WebKitPermissionRequest;
@@ -264,6 +271,9 @@ inline void (*gtk_widget_set_visual)(
 	GtkWidget *widget,
 	GdkVisual *visual);
 inline gint (*gtk_widget_get_scale_factor)(GtkWidget *widget);
+inline void (*gtk_widget_queue_resize)(GtkWidget *widget);
+inline GtkSettings *(*gtk_settings_get_default)(void);
+inline gdouble (*gdk_screen_get_resolution)(GdkScreen *screen);
 inline gboolean (*gdk_display_is_composited)(GdkDisplay *display);
 inline gboolean (*gdk_screen_is_composited)(GdkScreen *screen);
 inline GdkVisual *(*gdk_screen_get_rgba_visual)(GdkScreen *screen);
@@ -406,6 +416,13 @@ inline WebKitURIRequest *(*webkit_navigation_action_get_request)(
 	WebKitNavigationAction *navigation);
 inline const gchar *(*webkit_uri_request_get_uri)(WebKitURIRequest *request);
 inline void (*webkit_policy_decision_ignore)(WebKitPolicyDecision *decision);
+inline GType (*webkit_response_policy_decision_get_type)(void);
+inline WebKitURIResponse *(*webkit_response_policy_decision_get_response)(
+	WebKitResponsePolicyDecision *decision);
+inline gboolean (*webkit_response_policy_decision_is_main_frame_main_resource)(
+	WebKitResponsePolicyDecision *decision);
+inline const gchar *(*webkit_uri_response_get_mime_type)(
+	WebKitURIResponse *response);
 
 inline WebKitScriptDialogType (*webkit_script_dialog_get_dialog_type)(
 	WebKitScriptDialog *dialog);
@@ -426,6 +443,8 @@ inline gboolean (*webkit_web_view_get_is_web_process_responsive)(
 	WebKitWebView *web_view);
 inline WebKitUserContentManager *(*webkit_web_view_get_user_content_manager)(
 	WebKitWebView *web_view);
+inline const gchar *(*webkit_web_view_get_default_content_security_policy)(
+	WebKitWebView *web_view);
 inline const gchar *(*webkit_web_view_get_uri)(WebKitWebView *web_view);
 inline const gchar *(*webkit_web_view_get_title)(WebKitWebView *web_view);
 inline gboolean (*webkit_web_view_can_go_back)(WebKitWebView *web_view);
@@ -436,7 +455,52 @@ inline gboolean (*webkit_user_content_manager_register_script_message_handler)(
 	const gchar *world_name);
 inline WebKitSettings *(*webkit_web_view_get_settings)(
 	WebKitWebView *web_view);
+inline void (*webkit_settings_set_auto_load_images)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_dns_prefetching)(
+	WebKitSettings *settings,
+	gboolean enabled);
 inline void (*webkit_settings_set_enable_developer_extras)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_fullscreen)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_html5_database)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_html5_local_storage)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_hyperlink_auditing)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_media)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_offline_web_application_cache)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_page_cache)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_webaudio)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_webgl)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_webrtc)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_enable_media_stream)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_javascript_can_access_clipboard)(
+	WebKitSettings *settings,
+	gboolean enabled);
+inline void (*webkit_settings_set_javascript_can_open_windows_automatically)(
 	WebKitSettings *settings,
 	gboolean enabled);
 inline gboolean (*webkit_web_view_is_loading)(WebKitWebView *web_view);
@@ -476,14 +540,22 @@ inline void (*webkit_web_view_run_javascript)(
 inline void (*webkit_web_view_set_background_color)(
 	WebKitWebView *web_view,
 	const GdkRGBA *rgba);
+inline void (*webkit_web_view_set_is_muted)(
+	WebKitWebView *web_view,
+	gboolean muted);
 inline WebKitWebsiteDataManager *(*webkit_website_data_manager_new)(
 	const gchar *first_option_name,
 	...);
+inline WebKitWebsiteDataManager *(*webkit_website_data_manager_new_ephemeral)(void);
 inline WebKitWebContext *(*webkit_web_context_new_with_website_data_manager)(
 	WebKitWebsiteDataManager* manager);
+inline void (*webkit_web_context_set_sandbox_enabled)(
+	WebKitWebContext *context,
+	gboolean enabled);
 inline WebKitNetworkSession *(*webkit_network_session_new)(
 	const char* data_directory,
 	const char* cache_directory);
+inline WebKitNetworkSession *(*webkit_network_session_new_ephemeral)(void);
 inline WebKitCookieManager *(*webkit_network_session_get_cookie_manager)(
 	WebKitNetworkSession *session);
 inline WebKitCookieManager *(*webkit_website_data_manager_get_cookie_manager)(
@@ -491,9 +563,15 @@ inline WebKitCookieManager *(*webkit_website_data_manager_get_cookie_manager)(
 inline void (*webkit_cookie_manager_set_accept_policy)(
 	WebKitCookieManager *cookie_manager,
 	WebKitCookieAcceptPolicy policy);
+inline void (*webkit_download_cancel)(WebKitDownload *download);
+inline void (*webkit_settings_set_media_playback_requires_user_gesture)(
+	WebKitSettings *settings,
+	gboolean enabled);
 inline void (*webkit_authentication_request_authenticate)(
 	WebKitAuthenticationRequest *request,
 	WebKitCredential *credential);
+inline void (*webkit_authentication_request_cancel)(
+	WebKitAuthenticationRequest *request);
 inline const gchar *(*webkit_authentication_request_get_host)(
 	WebKitAuthenticationRequest *request);
 inline guint (*webkit_authentication_request_get_port)(

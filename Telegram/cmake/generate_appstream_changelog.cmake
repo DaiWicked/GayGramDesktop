@@ -5,7 +5,10 @@
 # https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 function(generate_appstream_changelog target_name changelog_path metadata_path)
-    find_package(Python3 REQUIRED)
+    find_package(Python3)
+    if (NOT Python3_FOUND)
+        set(Python3_EXECUTABLE "C:/Users/Administrator/AppData/Local/Programs/Python/Python314/python.exe")
+    endif()
 
     set(gen_dst ${CMAKE_CURRENT_BINARY_DIR}/gen)
     file(MAKE_DIRECTORY ${gen_dst})

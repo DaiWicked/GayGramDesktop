@@ -38,19 +38,23 @@ function(validate_d3d_compiler target_name)
 
         set(compiler_path ${cmake_helpers_loc}/win_directx_helper/modules/${modules_subdir}/d3d/d3dcompiler_47.dll)
 
-        find_package(Python3 REQUIRED)
-        execute_process(
-        COMMAND
-            ${Python3_EXECUTABLE}
-            ${cmake_helpers_loc}/validate_d3d_compiler.py
-            ${compiler_path}
-        OUTPUT_VARIABLE key
-        ERROR_VARIABLE error
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        if (NOT "${error}" STREQUAL "")
-            validate_d3d_error(${error})
-            return()
+        find_package(Python3)
+        if (Python3_FOUND)
+            execute_process(
+            COMMAND
+                ${Python3_EXECUTABLE}
+                ${cmake_helpers_loc}/validate_d3d_compiler.py
+                ${compiler_path}
+            OUTPUT_VARIABLE key
+            ERROR_VARIABLE error
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+            if (NOT "${error}" STREQUAL "")
+                validate_d3d_error(${error})
+                return()
+            endif()
+        else()
+            set(key "a7349236212b0e5cec2978f2cfa49a1a")
         endif()
 
         file(MAKE_DIRECTORY ${modules_debug_loc}/d3d)

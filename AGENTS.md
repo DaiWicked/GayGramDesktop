@@ -6,6 +6,23 @@ Avoid building the project.
 
 If you're asked to create a Pull Request, then clearly state in PR description that it was AI generated.
 
+## Cross-Version Update Workflow (Critical)
+
+**Large version updates are systematic work, not patchwork.**
+
+Before any major version sync (especially for forks):
+1. Backup current branch to a git tag
+2. Map current version's directory structure and CMake source lists
+3. Map upstream target version's directory structure and CMake source lists
+4. Diff the two: identify added/removed/renamed files, CMake list changes, API signature changes
+5. Align CMake source file lists FIRST before touching any code
+6. Sync module by module, with a compile verification after each module
+7. Each phase gets its own commit for rollback
+
+Never blindly `git checkout upstream -- SourceFiles` without first comparing CMake lists. Missing source files in CMake cause link errors that look like code bugs.
+
+Detailed workflow: `项目交流/跨版本更新工作准则.md`
+
 ## Working from Codex on Windows + WSL
 
 This checkout may be opened in Codex Desktop through the Windows UNC path `\\wsl.localhost\{distro}\home\{user}\Telegram\tdesktop`, while the real Linux path is `/home/{user}/Telegram/tdesktop`. Treat it as a WSL/Linux checkout first, not as a native Windows checkout.

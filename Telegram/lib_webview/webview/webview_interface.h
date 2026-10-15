@@ -75,6 +75,12 @@ public:
 	virtual void reload() = 0;
 
 	virtual void init(std::string js) = 0;
+
+	// Same as init(), but the script also runs in every child frame,
+	// so that a fresh realm (about:blank iframe) can't be used to
+	// sidestep the restrictions the script applies to the top frame.
+	virtual void initAllFrames(std::string js) = 0;
+
 	virtual void eval(std::string js) = 0;
 
 	virtual void focus() = 0;
@@ -163,6 +169,7 @@ struct Config {
 	AsyncDialogHandler asyncDialogHandler;
 	std::function<DataResult(DataRequest)> dataRequestHandler;
 	std::string dataProtocolOverride;
+	std::string dataRequestRedirectHost;
 	std::string userDataPath;
 	std::string userDataToken;
 	bool debug = false;
@@ -173,6 +180,8 @@ struct Config {
 	QMargins windowMargins;
 	QSize initialSize;
 	std::string shellMessageToken;
+	std::string restrictedOrigin;
+	std::string restrictedContentSecurityPolicy;
 };
 
 struct Available {
@@ -195,6 +204,7 @@ void ParseRangeHeaderFor(DataRequest &request, std::string_view header);
 [[nodiscard]] inline bool Supported() {
 	return Availability().error == Available::Error::None;
 }
+[[nodiscard]] bool HiddenSupported();
 [[nodiscard]] bool SupportsEmbedAfterCreate();
 [[nodiscard]] bool SeparateStorageIdSupported();
 

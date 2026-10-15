@@ -110,6 +110,11 @@ INTERFACE
 set_target_properties(libcmark-gfm_static libcmark-gfm-extensions_static
     PROPERTIES FOLDER "(external)")
 
+if (WIN32)
+    target_compile_options(libcmark-gfm_static PRIVATE /wd4819)
+    target_compile_options(libcmark-gfm-extensions_static PRIVATE /wd4819)
+endif()
+
 # cmark-gfm's static targets carry CMARK_GFM_STATIC_DEFINE /
 # CMARK_GFM_EXTENSIONS_STATIC_DEFINE via generate_export_header, but only
 # on the targets themselves. Restate them on our INTERFACE wrapper so

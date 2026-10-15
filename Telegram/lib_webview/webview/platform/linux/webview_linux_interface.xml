@@ -8,6 +8,7 @@
 		</method>
 		<method name='MessageReceived'>
 			<arg type='ay' name='message' direction='in'/>
+			<arg type='s' name='sourceUrl' direction='in'/>
 		</method>
 		<method name='NavigationStarted'>
 			<arg type='s' name='uri' direction='in'/>
@@ -55,6 +56,8 @@
 			<arg type='i' name='initialWidth' direction='in'/>
 			<arg type='i' name='initialHeight' direction='in'/>
 			<arg type='b' name='allowThirdPartyCookies' direction='in'/>
+			<arg type='s' name='restrictedOrigin' direction='in'/>
+			<arg type='s' name='restrictedContentSecurityPolicy' direction='in'/>
 		</method>
 		<method name='Reload'/>
 		<method name='Resolve'>
@@ -75,6 +78,9 @@
 			<arg type='b' name='fullscreen' direction='in'/>
 		</method>
 		<method name='Init'>
+			<arg type='ay' name='js' direction='in'/>
+		</method>
+		<method name='InitAllFrames'>
 			<arg type='ay' name='js' direction='in'/>
 		</method>
 		<method name='Eval'>

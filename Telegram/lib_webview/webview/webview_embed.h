@@ -18,6 +18,7 @@
 #include <QSize>
 
 class QString;
+class QTemporaryDir;
 class QWidget;
 class QWindow;
 
@@ -41,6 +42,7 @@ struct WindowConfig {
 	QColor opaqueBg;
 	StorageId storageId;
 	QString dataProtocolOverride;
+	QString dataRequestRedirectHost;
 	bool safe = false;
 	bool allowThirdPartyCookies = false;
 	WindowMode mode = WindowMode::Embedded;
@@ -48,6 +50,7 @@ struct WindowConfig {
 	QMargins windowMargins;
 	QSize initialSize;
 	QString shellMessageToken;
+	QString restrictedOrigin;
 };
 
 class Window final {
@@ -56,6 +59,8 @@ public:
 		QWidget *parent = nullptr,
 		WindowConfig config = WindowConfig());
 	~Window();
+
+	[[nodiscard]] bool valid() const;
 
 	// May be nullptr or destroyed any time (in case webview crashed).
 	[[nodiscard]] QWidget *widget() const;
@@ -109,6 +114,7 @@ private:
 	[[nodiscard]] AsyncDialogHandler asyncDialogHandler() const;
 	[[nodiscard]] Fn<DataResult(DataRequest)> dataRequestHandler() const;
 
+	std::unique_ptr<QTemporaryDir> _temporaryStorage;
 	std::unique_ptr<Interface> _webview;
 	Fn<void(Message)> _messageHandler;
 	Fn<bool(std::string,bool)> _navigationStartHandler;

@@ -19,7 +19,10 @@ if (_model_sources STREQUAL "")
     return()
 endif()
 
-find_package(Python3 REQUIRED)
+find_package(Python3)
+if (NOT Python3_FOUND)
+    set(Python3_EXECUTABLE "C:/Users/Administrator/AppData/Local/Programs/Python/Python314/python.exe")
+endif()
 
 set(_models_script "${CMAKE_CURRENT_SOURCE_DIR}/cmake/obj2binobj.py")
 set(_models_out_dir "${CMAKE_CURRENT_BINARY_DIR}/models")

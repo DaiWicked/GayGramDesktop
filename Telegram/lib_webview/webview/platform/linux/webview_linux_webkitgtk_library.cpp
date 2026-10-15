@@ -12,7 +12,7 @@ namespace Webview::WebKitGTK::Library {
 
 ResolveResult Resolve(Platform platform, WindowMode mode) {
 	const auto gtkPlug = (platform == Platform::X11)
-		&& (mode != WindowMode::External);
+		&& (mode == WindowMode::Embedded);
 	const auto lib = (!gtkPlug
 			? base::Platform::LoadLibrary("libwebkitgtk-6.0.so.4", RTLD_NODELETE)
 			: nullptr)
@@ -41,6 +41,8 @@ ResolveResult Resolve(Platform platform, WindowMode mode) {
 		&& (LOAD_LIBRARY_SYMBOL(lib, gtk_style_context_add_provider_for_display)
 			|| LOAD_LIBRARY_SYMBOL(lib, gtk_style_context_add_provider_for_screen))
 		&& LOAD_LIBRARY_SYMBOL(lib, gtk_style_provider_get_type)
+		&& LOAD_LIBRARY_SYMBOL(lib, gtk_settings_get_default)
+		&& LOAD_LIBRARY_SYMBOL(lib, gtk_widget_queue_resize)
 		&& LOAD_LIBRARY_SYMBOL(lib, gtk_css_provider_new)
 		&& (LOAD_LIBRARY_SYMBOL(lib, gtk_css_provider_load_from_string)
 			|| LOAD_LIBRARY_SYMBOL(lib, gtk_css_provider_load_from_data))
@@ -58,6 +60,9 @@ ResolveResult Resolve(Platform platform, WindowMode mode) {
 		&& LOAD_LIBRARY_SYMBOL(lib, webkit_navigation_action_get_request)
 		&& LOAD_LIBRARY_SYMBOL(lib, webkit_uri_request_get_uri)
 		&& LOAD_LIBRARY_SYMBOL(lib, webkit_policy_decision_ignore)
+		&& LOAD_LIBRARY_SYMBOL(lib, webkit_response_policy_decision_get_type)
+		&& LOAD_LIBRARY_SYMBOL(lib, webkit_response_policy_decision_get_response)
+		&& LOAD_LIBRARY_SYMBOL(lib, webkit_uri_response_get_mime_type)
 		&& LOAD_LIBRARY_SYMBOL(lib, webkit_script_dialog_get_dialog_type)
 		&& LOAD_LIBRARY_SYMBOL(lib, webkit_script_dialog_get_message)
 		&& LOAD_LIBRARY_SYMBOL(lib, webkit_script_dialog_confirm_set_confirmed)
@@ -105,10 +110,36 @@ ResolveResult Resolve(Platform platform, WindowMode mode) {
 	LOAD_LIBRARY_SYMBOL(lib, gdk_screen_get_rgba_visual);
 	LOAD_LIBRARY_SYMBOL(lib, webkit_javascript_result_get_js_value);
 	LOAD_LIBRARY_SYMBOL(lib, webkit_website_data_manager_new);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_website_data_manager_new_ephemeral);
 	LOAD_LIBRARY_SYMBOL(lib, webkit_web_context_new_with_website_data_manager);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_web_context_set_sandbox_enabled);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_network_session_new_ephemeral);
 	LOAD_LIBRARY_SYMBOL(lib, webkit_network_session_get_cookie_manager);
 	LOAD_LIBRARY_SYMBOL(lib, webkit_website_data_manager_get_cookie_manager);
 	LOAD_LIBRARY_SYMBOL(lib, webkit_cookie_manager_set_accept_policy);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_web_view_get_default_content_security_policy);
+	LOAD_LIBRARY_SYMBOL(
+		lib,
+		webkit_response_policy_decision_is_main_frame_main_resource);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_download_cancel);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_auto_load_images);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_dns_prefetching);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_fullscreen);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_html5_database);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_html5_local_storage);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_hyperlink_auditing);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_media);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_offline_web_application_cache);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_page_cache);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_webaudio);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_webgl);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_webrtc);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_enable_media_stream);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_javascript_can_access_clipboard);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_javascript_can_open_windows_automatically);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_settings_set_media_playback_requires_user_gesture);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_web_view_set_is_muted);
+	LOAD_LIBRARY_SYMBOL(lib, webkit_authentication_request_cancel);
 	LOAD_LIBRARY_SYMBOL(lib, gtk_gesture_click_new);
 	LOAD_LIBRARY_SYMBOL(lib, gtk_event_controller_key_new);
 	LOAD_LIBRARY_SYMBOL(lib, gtk_event_controller_get_type);
@@ -150,6 +181,7 @@ ResolveResult Resolve(Platform platform, WindowMode mode) {
 		LOAD_LIBRARY_SYMBOL(lib, gdk_wayland_window_unexport_handle);
 		LOAD_LIBRARY_SYMBOL(lib, gdk_wayland_window_announce_csd);
 		LOAD_LIBRARY_SYMBOL(lib, gtk_window_get_size);
+		LOAD_LIBRARY_SYMBOL(lib, gdk_screen_get_resolution);
 	}
 	if (LOAD_LIBRARY_SYMBOL(lib, gdk_set_allowed_backends)) {
 		switch (platform) {
