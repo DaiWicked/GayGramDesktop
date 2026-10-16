@@ -20,8 +20,142 @@
 #include "styles/palette.h"
 
 #include <QtGui/QtEvents>
+#include <QtCore/qmath.h>
+#include <algorithm>
+#include <atomic>
+#include <cmath>
 
 namespace Ui {
+
+namespace {
+
+constexpr auto kGlassDownscale = 2;
+constexpr auto kGlassBevelBase = 14;
+
+std::atomic<int> g_glassBlurRadius = 0;
+rpl::event_stream<int> g_glassBlurRadiusChanges;
+
+qreal GlassRoundedRectDistance(
+		qreal px,
+		qreal py,
+		qreal halfWidth,
+		qreal halfHeight,
+		qreal radius) {
+	const auto qx = std::abs(px) - halfWidth + radius;
+	const auto qy = std::abs(py) - halfHeight + radius;
+	const auto outside = std::sqrt(
+		std::max(qx, 0.) * std::max(qx, 0.)
+		+ std::max(qy, 0.) * std::max(qy, 0.));
+	return outside + std::min(std::max(qx, qy), 0.) - radius;
+}
+
+qreal GlassRefractionProfile(qreal distance, qreal bevel) {
+	const auto x = std::clamp(1. - distance / bevel, 0., 1.);
+	const auto a = 0.7;
+	const auto b = 2.3;
+	const auto c = 5.2;
+	const auto d = 6.9;
+	return std::clamp(1. - b * std::pow(c * std::exp(1.0), -d * x - a), 0., 1.);
+}
+
+} // namespace
+
+GlassBackdrop::GlassBackdrop(QImage image, GlassSpec spec, QPoint offset)
+: _image(std::move(image))
+, _spec(spec)
+, _offset(offset)
+, _version(++_versionCounter) {
+}
+
+bool GlassBackdrop::isNull() const {
+	return _image.isNull();
+}
+
+const QImage &GlassBackdrop::image() const {
+	return _image;
+}
+
+const GlassSpec &GlassBackdrop::spec() const {
+	return _spec;
+}
+
+QPoint GlassBackdrop::offset() const {
+	return _offset;
+}
+
+quint64 GlassBackdrop::version() const {
+	return _version;
+}
+
+GlassBackdrop PrepareGlassBackdrop(
+		QImage source,
+		qreal sourceScale,
+		GlassSpec spec) {
+	if (source.isNull() || spec.isNull()) {
+		return GlassBackdrop();
+	}
+	auto downscaled = source.scaled(
+		QSize(source.width() / kGlassDownscale, source.height() / kGlassDownscale),
+		Qt::IgnoreAspectRatio,
+		Qt::SmoothTransformation);
+	auto blurred = Images::BlurLargeImage(
+		std::move(downscaled),
+		style::ConvertScale(spec.blurRadius / kGlassDownscale));
+	return GlassBackdrop(std::move(blurred), spec, QPoint());
+}
+
+void DrawLiquidGlass(
+		Painter &p,
+		QRect rect,
+		const GlassBackdrop &material,
+		int radius,
+		const GlassSpec &spec) {
+	if (material.isNull() || spec.isNull()) {
+		return;
+	}
+	const auto dpr = style::DevicePixelRatio();
+	const auto sourceRect = QRect(
+		QPoint(material.offset().x() * dpr, material.offset().y() * dpr),
+		QSize(rect.width() * dpr, rect.height() * dpr));
+	p.drawImage(rect, material.image(), sourceRect);
+}
+
+void SetGlassBlurRadius(int radius) {
+	g_glassBlurRadius = radius;
+	g_glassBlurRadiusChanges.fire_copy(radius);
+}
+
+rpl::producer<int> BlurRadiusChanges() {
+	return g_glassBlurRadiusChanges.events();
+}
+
+namespace LiquidGlass {
+
+GlassSpec Regular() {
+	auto spec = GlassSpec{};
+	spec.blurRadius = g_glassBlurRadius.load();
+	spec.refractionRatio = 0.02;
+	spec.saturation = 1.1;
+	spec.highlight = 0.3;
+	spec.lightAngle = 45.;
+	return spec;
+}
+
+GlassSpec Clear() {
+	return GlassSpec{};
+}
+
+GlassSpec WindowsTitleBar() {
+	auto spec = GlassSpec{};
+	spec.blurRadius = g_glassBlurRadius.load();
+	spec.refractionRatio = 0.01;
+	spec.saturation = 1.05;
+	spec.highlight = 0.2;
+	spec.lightAngle = 45.;
+	return spec;
+}
+
+} // namespace LiquidGlass
 
 class LayerStackWidget::BackgroundWidget : public RpWidget {
 public:

@@ -13,6 +13,8 @@
 
 #include <optional>
 
+class Painter;
+
 namespace Window {
 class SectionMemento;
 struct SectionShow;
@@ -25,6 +27,74 @@ struct Box;
 namespace Ui {
 
 class BoxContent;
+
+struct GlassSpec {
+	int blurRadius = 0;
+	int bevelWidth = 0;
+	qreal refractionRatio = 0.;
+	qreal saturation = 1.;
+	qreal highlight = 0.;
+	qreal lightAngle = 45.;
+	QColor tint = Qt::transparent;
+	uchar tintAlphaActive = 0;
+	uchar tintAlphaInactive = 0;
+
+	[[nodiscard]] bool isNull() const {
+		return (blurRadius <= 0)
+			&& (refractionRatio <= 0.)
+			&& (tintAlphaActive == 0);
+	}
+	[[nodiscard]] int bevelFor(int width, int height) const {
+		return bevelWidth > 0
+			? bevelWidth
+			: std::clamp(
+				int(std::round(0.15 * std::min(width, height))),
+				4,
+				24);
+	}
+};
+
+class GlassBackdrop {
+public:
+	GlassBackdrop() = default;
+	GlassBackdrop(QImage image, GlassSpec spec, QPoint offset);
+
+	[[nodiscard]] bool isNull() const;
+	[[nodiscard]] const QImage &image() const;
+	[[nodiscard]] const GlassSpec &spec() const;
+	[[nodiscard]] QPoint offset() const;
+	[[nodiscard]] quint64 version() const;
+
+private:
+	QImage _image;
+	GlassSpec _spec;
+	QPoint _offset;
+	quint64 _version = 0;
+	static inline quint64 _versionCounter = 0;
+};
+
+[[nodiscard]] GlassBackdrop PrepareGlassBackdrop(
+	QImage source,
+	qreal sourceScale,
+	GlassSpec spec);
+
+void DrawLiquidGlass(
+	Painter &p,
+	QRect rect,
+	const GlassBackdrop &material,
+	int radius,
+	const GlassSpec &spec);
+
+void SetGlassBlurRadius(int radius);
+[[nodiscard]] rpl::producer<int> BlurRadiusChanges();
+
+namespace LiquidGlass {
+
+[[nodiscard]] GlassSpec Regular();
+[[nodiscard]] GlassSpec Clear();
+[[nodiscard]] GlassSpec WindowsTitleBar();
+
+} // namespace LiquidGlass
 
 enum class LayerOption {
 	CloseOther = (1 << 0),
