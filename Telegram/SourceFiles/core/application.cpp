@@ -566,7 +566,7 @@ void Application::startSettingsAndBackground() {
 	Ui::SetScreenReaderModeDisabled(
 		settings().readPref<bool>(kScreenReaderModeDisabledKey));
 	const auto glassRadius = settings().readPref<int>(
-		Core::kGayGramGlassStrengthKey, 0);
+		Core::kGayGramGlassStrengthKey, 24);
 	Ui::SetGlassBlurRadius(glassRadius);
 }
 

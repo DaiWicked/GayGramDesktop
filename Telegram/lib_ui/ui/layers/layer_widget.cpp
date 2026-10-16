@@ -115,9 +115,26 @@ void DrawLiquidGlass(
 	}
 	const auto dpr = style::DevicePixelRatio();
 	const auto sourceRect = QRect(
-		QPoint(material.offset().x() * dpr, material.offset().y() * dpr),
-		QSize(rect.width() * dpr, rect.height() * dpr));
+		QPoint(
+			material.offset().x() * dpr / kGlassDownscale,
+			material.offset().y() * dpr / kGlassDownscale),
+		QSize(
+			rect.width() * dpr / kGlassDownscale,
+			rect.height() * dpr / kGlassDownscale));
+
+	p.save();
+	if (radius > 0) {
+		auto clip = QPainterPath();
+		clip.addRoundedRect(QRectF(rect), radius, radius);
+		p.setClipPath(clip);
+	}
 	p.drawImage(rect, material.image(), sourceRect);
+	if (spec.tintAlphaActive > 0 && spec.tint.alpha() > 0) {
+		auto tint = spec.tint;
+		tint.setAlpha(spec.tintAlphaActive);
+		p.fillRect(rect, tint);
+	}
+	p.restore();
 }
 
 void SetGlassBlurRadius(int radius) {
@@ -132,8 +149,12 @@ rpl::producer<int> BlurRadiusChanges() {
 namespace LiquidGlass {
 
 GlassSpec Regular() {
+	const auto radius = g_glassBlurRadius.load();
+	if (radius <= 0) {
+		return GlassSpec{};
+	}
 	auto spec = GlassSpec{};
-	spec.blurRadius = g_glassBlurRadius.load();
+	spec.blurRadius = radius;
 	spec.refractionRatio = 0.02;
 	spec.saturation = 1.1;
 	spec.highlight = 0.3;
@@ -146,8 +167,12 @@ GlassSpec Clear() {
 }
 
 GlassSpec WindowsTitleBar() {
+	const auto radius = g_glassBlurRadius.load();
+	if (radius <= 0) {
+		return GlassSpec{};
+	}
 	auto spec = GlassSpec{};
-	spec.blurRadius = g_glassBlurRadius.load();
+	spec.blurRadius = radius;
 	spec.refractionRatio = 0.01;
 	spec.saturation = 1.05;
 	spec.highlight = 0.2;
