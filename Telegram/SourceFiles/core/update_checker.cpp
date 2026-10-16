@@ -1737,7 +1737,7 @@ FlatpakLoader::~FlatpakLoader() {
 } // namespace
 
 bool UpdaterDisabled() {
-	return UpdaterIsDisabled;
+	return true;
 }
 
 void SetUpdaterDisabledAtStartup() {
