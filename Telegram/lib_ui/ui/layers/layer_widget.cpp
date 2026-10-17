@@ -31,8 +31,9 @@ namespace {
 
 constexpr auto kGlassDownscale = 2;
 constexpr auto kGlassBevelBase = 14;
+constexpr auto kGlassMaxRadius = 80;
 
-std::atomic<int> g_glassBlurRadius = 0;
+std::atomic<int> g_glassBlurRadius = 24;
 rpl::event_stream<int> g_glassBlurRadiusChanges;
 
 qreal GlassRoundedRectDistance(
@@ -68,7 +69,7 @@ GlassBackdrop::GlassBackdrop(QImage image, GlassSpec spec, QPoint offset)
 }
 
 bool GlassBackdrop::isNull() const {
-	return _image.isNull();
+	return _image.isNull() || _spec.isNull();
 }
 
 const QImage &GlassBackdrop::image() const {
@@ -89,18 +90,18 @@ quint64 GlassBackdrop::version() const {
 
 GlassBackdrop PrepareGlassBackdrop(
 		QImage source,
-		qreal sourceScale,
 		GlassSpec spec) {
 	if (source.isNull() || spec.isNull()) {
 		return GlassBackdrop();
 	}
+	const auto dpr = style::DevicePixelRatio();
 	auto downscaled = source.scaled(
 		QSize(source.width() / kGlassDownscale, source.height() / kGlassDownscale),
 		Qt::IgnoreAspectRatio,
 		Qt::SmoothTransformation);
 	auto blurred = Images::BlurLargeImage(
 		std::move(downscaled),
-		style::ConvertScale(spec.blurRadius / kGlassDownscale));
+		style::ConvertScale(spec.blurRadius * dpr / kGlassDownscale));
 	return GlassBackdrop(std::move(blurred), spec, QPoint());
 }
 
@@ -138,8 +139,15 @@ void DrawLiquidGlass(
 }
 
 void SetGlassBlurRadius(int radius) {
-	g_glassBlurRadius = radius;
-	g_glassBlurRadiusChanges.fire_copy(radius);
+	const auto value = std::clamp(radius, 0, kGlassMaxRadius);
+	const auto old = g_glassBlurRadius.exchange(value);
+	if (old != value) {
+		g_glassBlurRadiusChanges.fire_copy(value);
+	}
+}
+
+int GlassBlurRadius() {
+	return g_glassBlurRadius.load();
 }
 
 rpl::producer<int> BlurRadiusChanges() {
@@ -155,8 +163,8 @@ GlassSpec Regular() {
 	}
 	auto spec = GlassSpec{};
 	spec.blurRadius = radius;
-	spec.refractionRatio = 0.02;
-	spec.saturation = 1.1;
+	spec.refractionRatio = 0.9;
+	spec.saturation = 1.18;
 	spec.highlight = 0.3;
 	spec.lightAngle = 45.;
 	return spec;
@@ -173,7 +181,7 @@ GlassSpec WindowsTitleBar() {
 	}
 	auto spec = GlassSpec{};
 	spec.blurRadius = radius;
-	spec.refractionRatio = 0.01;
+	spec.refractionRatio = 0.;
 	spec.saturation = 1.05;
 	spec.highlight = 0.2;
 	spec.lightAngle = 45.;

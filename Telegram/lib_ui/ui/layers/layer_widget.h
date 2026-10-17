@@ -11,6 +11,7 @@
 #include "base/object_ptr.h"
 #include "base/flags.h"
 
+#include <QColor>
 #include <optional>
 
 class Painter;
@@ -75,7 +76,6 @@ private:
 
 [[nodiscard]] GlassBackdrop PrepareGlassBackdrop(
 	QImage source,
-	qreal sourceScale,
 	GlassSpec spec);
 
 void DrawLiquidGlass(
@@ -86,6 +86,7 @@ void DrawLiquidGlass(
 	const GlassSpec &spec);
 
 void SetGlassBlurRadius(int radius);
+[[nodiscard]] int GlassBlurRadius();
 [[nodiscard]] rpl::producer<int> BlurRadiusChanges();
 
 namespace LiquidGlass {
