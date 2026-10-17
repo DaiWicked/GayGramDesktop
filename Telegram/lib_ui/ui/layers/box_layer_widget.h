@@ -95,6 +95,8 @@ public:
 		return _content->layerAnimationDuration();
 	}
 
+	void setGlassBackdrop(QImage backdrop, QPoint offset);
+
 	rpl::producer<int> layerHeightMaxValue() override;
 	rpl::producer<int> contentHeightMaxValue() override;
 
@@ -129,6 +131,8 @@ private:
 	void updateMaxRealHeight();
 	void updateSize();
 
+	[[nodiscard]] const GlassBackdrop &glassMaterial() const;
+
 	const style::Box *_st = nullptr;
 	not_null<LayerStackDelegate*> _layer;
 	rpl::variable<int> _realHeightMax;
@@ -153,6 +157,11 @@ private:
 	object_ptr<AbstractButton> _leftButton = { nullptr };
 	std::vector<base::unique_qptr<AbstractButton>> _topButtons;
 	std::unique_ptr<LoadingProgress> _loadingProgress;
+
+	QImage _glassBackdrop;
+	QPoint _glassOffset;
+	mutable GlassBackdrop _glassMaterial;
+	mutable QSize _glassMaterialSize;
 
 };
 

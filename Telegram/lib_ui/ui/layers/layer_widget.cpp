@@ -206,6 +206,9 @@ public:
 		QPixmap &&layerCache);
 	void removeBodyCache();
 	[[nodiscard]] bool hasBodyCache() const;
+	[[nodiscard]] const QPixmap &bodyCache() const {
+		return _bodyCache;
+	}
 	void refreshBodyCache(QPixmap &&bodyCache);
 	void startAnimation(Action action, crl::time duration = 0);
 	void skipAnimation(Action action, crl::time duration = 0);
@@ -727,16 +730,21 @@ void LayerStackWidget::setCacheImages() {
 	if (isAncestorOf(window()->focusWidget())) {
 		setFocus();
 	}
-	if (_mainMenu) {
+	if (_specialLayer || currentLayer() || _mainMenu) {
 		removeBodyCache();
 		hideChildren();
 		bodyCache = Ui::GrabWidget(parentWidget());
 		showChildren();
-		mainMenuCache = Ui::Shadow::grab(_mainMenu, st::boxRoundShadow, RectPart::Right);
+		if (_mainMenu) {
+			mainMenuCache = Ui::Shadow::grab(_mainMenu, st::boxRoundShadow, RectPart::Right);
+		}
 	}
 	setAttribute(Qt::WA_OpaquePaintEvent, !bodyCache.isNull());
 	updateLayerBoxes();
 	_background->setCacheImages(std::move(bodyCache), std::move(mainMenuCache), std::move(specialLayerCache), std::move(layerCache));
+	if (const auto box = dynamic_cast<BoxLayerWidget*>(currentLayer())) {
+		box->setGlassBackdrop(_background->bodyCache().toImage(), box->pos());
+	}
 }
 
 void LayerStackWidget::closeLayer(not_null<LayerWidget*> layer) {
