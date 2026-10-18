@@ -464,6 +464,22 @@ void ChatTheme::adjustPalette(const ChatThemeDescriptor &descriptor) {
 			set(color, now);
 		}
 	}
+
+	const auto gaygramInBg = descriptor.basedOnDark
+		? QColor(44, 44, 46)
+		: QColor(245, 245, 247);
+	set(p.msgInBg(), gaygramInBg);
+	set(p.msgInBgSelected(), descriptor.basedOnDark
+		? QColor(58, 58, 60)
+		: QColor(210, 210, 215));
+
+	const auto gaygramOutBg = descriptor.basedOnDark
+		? QColor(28, 58, 94)
+		: QColor(209, 231, 255);
+	set(p.msgOutBg(), gaygramOutBg);
+	set(p.msgOutBgSelected(), descriptor.basedOnDark
+		? QColor(40, 75, 115)
+		: QColor(180, 210, 240));
 }
 
 style::colorizer ChatTheme::bubblesAccentColorizer(
