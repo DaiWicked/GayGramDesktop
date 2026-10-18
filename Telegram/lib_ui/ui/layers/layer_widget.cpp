@@ -32,9 +32,33 @@ namespace {
 constexpr auto kGlassDownscale = 2;
 constexpr auto kGlassBevelBase = 14;
 constexpr auto kGlassMaxRadius = 80;
+constexpr auto kGlassSaturationBoost = 118;
 
 std::atomic<int> g_glassBlurRadius = 24;
 rpl::event_stream<int> g_glassBlurRadiusChanges;
+
+[[nodiscard]] QImage BoostGlassSaturation(QImage &&image) {
+	if (image.isNull()) {
+		return std::move(image);
+	}
+	for (auto y = 0; y < image.height(); ++y) {
+		const auto row = reinterpret_cast<QRgb*>(image.scanLine(y));
+		for (auto x = 0; x < image.width(); ++x) {
+			const auto pixel = row[x];
+			const auto r = int(qRed(pixel));
+			const auto g = int(qGreen(pixel));
+			const auto b = int(qBlue(pixel));
+			const auto luma = (r * 54 + g * 183 + b * 19) >> 8;
+			const auto boost = [&](int channel) {
+				const auto mixed = luma
+					+ ((channel - luma) * kGlassSaturationBoost) / 100;
+				return std::clamp(mixed, 0, 255);
+			};
+			row[x] = qRgba(boost(r), boost(g), boost(b), qAlpha(pixel));
+		}
+	}
+	return std::move(image);
+}
 
 qreal GlassRoundedRectDistance(
 		qreal px,
@@ -96,12 +120,15 @@ GlassBackdrop PrepareGlassBackdrop(
 	}
 	const auto dpr = style::DevicePixelRatio();
 	auto downscaled = source.scaled(
-		QSize(source.width() / kGlassDownscale, source.height() / kGlassDownscale),
+		QSize(
+			std::max(source.width() / kGlassDownscale, 1),
+			std::max(source.height() / kGlassDownscale, 1)),
 		Qt::IgnoreAspectRatio,
 		Qt::SmoothTransformation);
 	auto blurred = Images::BlurLargeImage(
 		std::move(downscaled),
-		style::ConvertScale(spec.blurRadius * dpr / kGlassDownscale));
+		std::max(1, int(spec.blurRadius * dpr) / kGlassDownscale));
+	blurred = BoostGlassSaturation(std::move(blurred));
 	return GlassBackdrop(std::move(blurred), spec, QPoint());
 }
 
@@ -138,7 +165,10 @@ void DrawLiquidGlass(
 	p.restore();
 	if (radius > 0) {
 		p.save();
-		auto stroke = QPen(QColor(255, 255, 255, 55));
+		auto edge = (st::windowBg->c.lightness() > 128)
+			? QColor(0, 0, 0, 26)
+			: QColor(255, 255, 255, 55);
+		auto stroke = QPen(edge);
 		stroke.setWidth(1);
 		p.setPen(stroke);
 		p.setBrush(Qt::NoBrush);
@@ -172,13 +202,10 @@ GlassSpec Regular() {
 	}
 	auto spec = GlassSpec{};
 	spec.blurRadius = radius;
-	spec.refractionRatio = 0.9;
-	spec.saturation = 1.18;
-	spec.highlight = 0.3;
-	spec.lightAngle = 45.;
-	spec.tint = st::windowBg->c;
-	spec.tintAlphaActive = 210;
-	spec.tintAlphaInactive = 168;
+	const auto bg = st::boxBg->c;
+	spec.tint = bg;
+	spec.tintAlphaActive = uchar(bg.alpha() ? bg.alpha() : 140);
+	spec.tintAlphaInactive = uchar(std::max(spec.tintAlphaActive - 12, 0));
 	return spec;
 }
 
@@ -219,9 +246,10 @@ public:
 	void removeBodyCache();
 	[[nodiscard]] bool hasBodyCache() const;
 	[[nodiscard]] const QPixmap &bodyCache() const {
-		return _bodyCache;
+		return _bodyRawCache;
 	}
 	void refreshBodyCache(QPixmap &&bodyCache);
+	void refreshBlurredBody();
 	void startAnimation(Action action, crl::time duration = 0);
 	void skipAnimation(Action action, crl::time duration = 0);
 	void finishAnimating();
@@ -243,8 +271,10 @@ private:
 	void setLayerShown(bool shown);
 	void checkWasShown(bool wasShown);
 	void animationCallback();
+	void setBodyCache(QPixmap &&bodyCache);
 
 	QPixmap _bodyCache;
+	QPixmap _bodyRawCache;
 	QPixmap _mainMenuCache;
 	int _mainMenuCacheWidth = 0;
 	QPixmap _specialLayerCache;
@@ -271,24 +301,61 @@ private:
 
 };
 
+void LayerStackWidget::BackgroundWidget::setBodyCache(QPixmap &&bodyCache) {
+	_bodyRawCache = std::move(bodyCache);
+	if (_bodyRawCache.isNull() || GlassBlurRadius() <= 0) {
+		_bodyCache = _bodyRawCache;
+	} else {
+		const auto dpr = style::DevicePixelRatio();
+		auto image = _bodyRawCache.toImage();
+		const auto full = image.size();
+		image = image.scaled(
+			QSize(
+				std::max(full.width() / kGlassDownscale, 1),
+				std::max(full.height() / kGlassDownscale, 1)),
+			Qt::IgnoreAspectRatio,
+			Qt::SmoothTransformation);
+		image = Images::BlurLargeImage(
+			std::move(image),
+			std::max(1, int(GlassBlurRadius() * dpr) / kGlassDownscale));
+		image = BoostGlassSaturation(std::move(image));
+		image = image.scaled(
+			full,
+			Qt::IgnoreAspectRatio,
+			Qt::SmoothTransformation);
+		image.setDevicePixelRatio(dpr);
+		_bodyCache = QPixmap::fromImage(std::move(image));
+	}
+	setAttribute(Qt::WA_OpaquePaintEvent, !_bodyCache.isNull());
+}
+
+void LayerStackWidget::BackgroundWidget::refreshBlurredBody() {
+	if (_bodyRawCache.isNull()) {
+		return;
+	}
+	auto raw = _bodyRawCache;
+	setBodyCache(std::move(raw));
+	update();
+}
+
 void LayerStackWidget::BackgroundWidget::setCacheImages(
 		QPixmap &&bodyCache,
 		QPixmap &&mainMenuCache,
 		QPixmap &&specialLayerCache,
 		QPixmap &&layerCache) {
-	_bodyCache = std::move(bodyCache);
+	setBodyCache(std::move(bodyCache));
 	_mainMenuCache = std::move(mainMenuCache);
 	_specialLayerCache = std::move(specialLayerCache);
 	_layerCache = std::move(layerCache);
 	_specialLayerCacheBox = _specialLayerBox;
 	_layerCacheBox = _layerBox;
 	_repaintIssued = false;
-	setAttribute(Qt::WA_OpaquePaintEvent, !_bodyCache.isNull());
 }
 
 void LayerStackWidget::BackgroundWidget::removeBodyCache() {
-	if (hasBodyCache()) {
+	if (!_bodyCache.isNull() || !_bodyRawCache.isNull()) {
 		_bodyCache = {};
+		_bodyRawCache = {};
 		setAttribute(Qt::WA_OpaquePaintEvent, false);
 	}
 }
@@ -299,8 +366,7 @@ bool LayerStackWidget::BackgroundWidget::hasBodyCache() const {
 
 void LayerStackWidget::BackgroundWidget::refreshBodyCache(
 		QPixmap &&bodyCache) {
-	_bodyCache = std::move(bodyCache);
-	setAttribute(Qt::WA_OpaquePaintEvent, !_bodyCache.isNull());
+	setBodyCache(std::move(bodyCache));
 }
 
 void LayerStackWidget::BackgroundWidget::startAnimation(
@@ -545,6 +611,13 @@ LayerStackWidget::LayerStackWidget(QWidget *parent, ShowFactory showFactory)
 	setGeometry(parentWidget()->rect());
 	hide();
 	_background->setDoneCallback([this] { animationDone(); });
+	BlurRadiusChanges(
+	) | rpl::on_next([=] {
+		_background->refreshBlurredBody();
+		for (const auto &layer : _layers) {
+			layer->update();
+		}
+	}, lifetime());
 }
 
 void LayerWidget::setInnerFocus() {

@@ -149,7 +149,7 @@ void FiltersMenu::setup() {
 		const auto savedWidth = Core::App().settings().readPref<int>(
 			Core::kGayGramSidebarWidthKey, 0);
 		const auto width = (savedWidth > 0)
-			? savedWidth
+			? std::clamp(style::ConvertScale(savedWidth), 32, 200)
 			: st::windowFiltersWidth;
 		_outer.setGeometry({ 0, 0, width, height });
 		_menu.resizeToWidth(width);

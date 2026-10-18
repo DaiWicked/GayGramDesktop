@@ -3298,14 +3298,16 @@ int SessionController::filtersWidth() const {
 	}
 	const auto savedWidth = Core::App().settings().readPref<int>(
 		Core::kGayGramSidebarWidthKey, 0);
-	return (savedWidth > 0) ? savedWidth : st::windowFiltersWidth;
+	return (savedWidth > 0)
+		? std::clamp(style::ConvertScale(savedWidth), 32, 200)
+		: st::windowFiltersWidth;
 }
 
 bool SessionController::enoughSpaceForFilters() const {
 	const auto savedWidth = Core::App().settings().readPref<int>(
 		Core::kGayGramSidebarWidthKey, 0);
 	const auto width = (savedWidth > 0)
-		? savedWidth
+		? std::clamp(style::ConvertScale(savedWidth), 32, 200)
 		: st::windowFiltersWidth;
 	return widget()->width() >= widget()->minimumWidth() + width;
 }
