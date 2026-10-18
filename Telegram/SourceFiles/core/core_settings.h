@@ -42,8 +42,6 @@ inline constexpr auto kScreenReaderModeDisabledKey
 
 inline constexpr auto kGayGramGlassStrengthKey
 	= "gaygramGlassStrength"_cs;
-inline constexpr auto kGayGramTitleBarGlassKey
-	= "gaygramTitleBarGlass"_cs;
 inline constexpr auto kGayGramSidebarWidthKey
 	= "gaygramSidebarWidth"_cs;
 

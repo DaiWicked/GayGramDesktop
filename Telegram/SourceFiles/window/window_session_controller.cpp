@@ -3293,11 +3293,21 @@ not_null<MainWidget*> SessionController::content() const {
 }
 
 int SessionController::filtersWidth() const {
-	return _filters ? st::windowFiltersWidth : 0;
+	if (!_filters) {
+		return 0;
+	}
+	const auto savedWidth = Core::App().settings().readPref<int>(
+		Core::kGayGramSidebarWidthKey, 0);
+	return (savedWidth > 0) ? savedWidth : st::windowFiltersWidth;
 }
 
 bool SessionController::enoughSpaceForFilters() const {
-	return widget()->width() >= widget()->minimumWidth() + st::windowFiltersWidth;
+	const auto savedWidth = Core::App().settings().readPref<int>(
+		Core::kGayGramSidebarWidthKey, 0);
+	const auto width = (savedWidth > 0)
+		? savedWidth
+		: st::windowFiltersWidth;
+	return widget()->width() >= widget()->minimumWidth() + width;
 }
 
 rpl::producer<bool> SessionController::enoughSpaceForFiltersValue() const {

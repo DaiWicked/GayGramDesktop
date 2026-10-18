@@ -122,15 +122,23 @@ void BoxLayerWidget::setGlassBackdrop(QImage backdrop, QPoint offset) {
 	_glassOffset = offset;
 	_glassMaterial = GlassBackdrop();
 	_glassMaterialSize = QSize();
+	_glassMaterialRadius = -1;
+	if (_content) {
+		_content->setTransparentBackground(!_glassBackdrop.isNull());
+	}
 	update();
 }
 
 const GlassBackdrop &BoxLayerWidget::glassMaterial() const {
 	const auto size = rect().size();
-	if (_glassMaterialSize == size && !_glassMaterial.isNull()) {
+	const auto radius = GlassBlurRadius();
+	if (_glassMaterialSize == size
+		&& _glassMaterialRadius == radius
+		&& !_glassMaterial.isNull()) {
 		return _glassMaterial;
 	}
 	_glassMaterialSize = size;
+	_glassMaterialRadius = radius;
 	_glassMaterial = GlassBackdrop();
 	if (_glassBackdrop.isNull() || size.isEmpty()) {
 		return _glassMaterial;

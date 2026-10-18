@@ -115,7 +115,7 @@ public:
 class BoxContent : public RpWidget {
 public:
 	BoxContent() {
-		setAttribute(Qt::WA_OpaquePaintEvent);
+		updatePaintAttribute();
 	}
 
 	QAccessible::Role accessibilityRole() override {
@@ -224,9 +224,17 @@ public:
 	void setNoContentMargin(bool noContentMargin) {
 		if (_noContentMargin != noContentMargin) {
 			_noContentMargin = noContentMargin;
-			setAttribute(Qt::WA_OpaquePaintEvent, !_noContentMargin);
+			updatePaintAttribute();
 		}
 		getDelegate()->setNoContentMargin(noContentMargin);
+	}
+
+	void setTransparentBackground(bool transparent) {
+		if (_transparentBackground != transparent) {
+			_transparentBackground = transparent;
+			updatePaintAttribute();
+			update();
+		}
 	}
 
 	void scrollByDraggingDelta(int delta);
@@ -318,11 +326,16 @@ private:
 	void updateInnerVisibleTopBottom();
 	void updateShadowsVisibility(anim::type animated = anim::type::normal);
 	object_ptr<RpWidget> doTakeInnerWidget();
+	void updatePaintAttribute() {
+		setAttribute(Qt::WA_OpaquePaintEvent,
+			!_transparentBackground && !_noContentMargin);
+	}
 
 	BoxContentDelegate *_delegate = nullptr;
 
 	bool _preparing = false;
 	bool _noContentMargin = false;
+	bool _transparentBackground = false;
 	bool _closeByEscape = true;
 	int _innerTopSkip = 0;
 	int _innerBottomSkip = 0;

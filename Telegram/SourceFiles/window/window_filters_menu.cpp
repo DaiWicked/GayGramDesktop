@@ -146,7 +146,11 @@ void FiltersMenu::setup() {
 
 	_parent->heightValue(
 	) | rpl::on_next([=](int height) {
-		const auto width = st::windowFiltersWidth;
+		const auto savedWidth = Core::App().settings().readPref<int>(
+			Core::kGayGramSidebarWidthKey, 0);
+		const auto width = (savedWidth > 0)
+			? savedWidth
+			: st::windowFiltersWidth;
 		_outer.setGeometry({ 0, 0, width, height });
 		_menu.resizeToWidth(width);
 		_menu.move(0, 0);

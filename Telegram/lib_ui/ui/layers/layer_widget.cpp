@@ -136,6 +136,15 @@ void DrawLiquidGlass(
 		p.fillRect(rect, tint);
 	}
 	p.restore();
+	if (radius > 0) {
+		p.save();
+		auto stroke = QPen(QColor(255, 255, 255, 55));
+		stroke.setWidth(1);
+		p.setPen(stroke);
+		p.setBrush(Qt::NoBrush);
+		p.drawRoundedRect(QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
+		p.restore();
+	}
 }
 
 void SetGlassBlurRadius(int radius) {
@@ -167,6 +176,9 @@ GlassSpec Regular() {
 	spec.saturation = 1.18;
 	spec.highlight = 0.3;
 	spec.lightAngle = 45.;
+	spec.tint = st::windowBg->c;
+	spec.tintAlphaActive = 210;
+	spec.tintAlphaInactive = 168;
 	return spec;
 }
 
