@@ -163,8 +163,8 @@ void DrawLiquidGlass(
 		p.fillRect(rect, tint);
 	}
 	{
-		const auto highlightAlpha = (st::windowBg->c.lightness() > 128) ? 46 : 26;
-		auto highlight = QLinearGradient(0, 0, 0, rect.height() / 3.);
+		const auto highlightAlpha = (st::windowBg->c.lightness() > 128) ? 30 : 18;
+		auto highlight = QLinearGradient(0, 0, 0, rect.height() / 4.);
 		highlight.setColorAt(0., QColor(255, 255, 255, highlightAlpha));
 		highlight.setColorAt(1., QColor(255, 255, 255, 0));
 		auto inner = QPainterPath();
@@ -210,17 +210,36 @@ rpl::producer<int> BlurRadiusChanges() {
 
 namespace LiquidGlass {
 
+namespace {
+int PopupBlurRadius(int backdropRadius) {
+	if (backdropRadius <= 0) {
+		return 0;
+	} else if (backdropRadius <= 16) {
+		return 5;
+	}
+	return 14;
+}
+
+int PopupTintAlpha(int backdropRadius) {
+	if (backdropRadius <= 16) {
+		return 124;
+	}
+	return 108;
+}
+} // namespace
+
 GlassSpec Regular() {
 	const auto backdropRadius = g_glassBlurRadius.load();
 	if (backdropRadius <= 0) {
 		return GlassSpec{};
 	}
 	auto spec = GlassSpec{};
-	spec.blurRadius = std::max(6, backdropRadius * 2 / 3);
+	spec.blurRadius = PopupBlurRadius(backdropRadius);
 	const auto bg = st::boxBg->c;
 	spec.tint = QColor(bg.red(), bg.green(), bg.blue());
-	spec.tintAlphaActive = 120;
-	spec.tintAlphaInactive = 108;
+	const auto tint = PopupTintAlpha(backdropRadius);
+	spec.tintAlphaActive = tint;
+	spec.tintAlphaInactive = std::max(tint - 12, 0);
 	return spec;
 }
 

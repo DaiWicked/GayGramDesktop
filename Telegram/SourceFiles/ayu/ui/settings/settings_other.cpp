@@ -78,8 +78,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 			const auto current = Core::App().settings().readPref<int>(
 				Core::kGayGramGlassStrengthKey, 12);
 			const auto initial = (current <= 0) ? 0
-				: (current <= 12) ? 0
-				: (current <= 28) ? 1
+				: (current <= 12) ? 1
 				: 2;
 			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
 				SingleChoiceBox(box, {
