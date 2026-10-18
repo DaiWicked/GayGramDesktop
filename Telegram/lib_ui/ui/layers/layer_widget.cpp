@@ -203,9 +203,9 @@ GlassSpec Regular() {
 	auto spec = GlassSpec{};
 	spec.blurRadius = radius;
 	const auto bg = st::boxBg->c;
-	spec.tint = bg;
-	spec.tintAlphaActive = uchar(bg.alpha() ? bg.alpha() : 140);
-	spec.tintAlphaInactive = uchar(std::max(spec.tintAlphaActive - 12, 0));
+	spec.tint = QColor(bg.red(), bg.green(), bg.blue());
+	spec.tintAlphaActive = 140;
+	spec.tintAlphaInactive = 128;
 	return spec;
 }
 
@@ -410,7 +410,9 @@ void LayerStackWidget::BackgroundWidget::checkIfDone() {
 	}
 	_wasAnimating = false;
 	_mainMenuCache = _specialLayerCache = _layerCache = QPixmap();
-	removeBodyCache();
+	if (!isShown()) {
+		removeBodyCache();
+	}
 	if (_doneCallback) {
 		_doneCallback();
 	}
@@ -928,6 +930,7 @@ bool LayerStackWidget::prepareAnimation(
 		crl::time duration) {
 	if (animated == anim::type::instant) {
 		setupNewWidgets();
+		setCacheImages();
 		clearOldWidgets();
 		prepareForAnimation();
 		_background->skipAnimation(action, duration);
