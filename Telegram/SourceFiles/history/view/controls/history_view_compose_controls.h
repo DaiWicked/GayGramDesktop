@@ -575,12 +575,6 @@ private:
 	QPointer<QWidget> _pasteToastParent;
 	std::shared_ptr<QMimeData> _pendingRichPaste;
 	const not_null<Ui::InputField*> _field;
-	QPixmap _glassBlurCache;
-	QSize _glassBlurCacheSize;
-	int _glassBlurCacheRadius = -1;
-	int _glassTintAlpha = 56;
-	uint64 _glassBlurCachePaperId = 0;
-	style::internal::OwnedColor _glassFieldBg{ QColor(Qt::transparent) };
 	std::unique_ptr<Controls::RichDraftPreview> _richDraftPreview;
 	base::unique_qptr<Ui::RpWidget> _fieldDisabled;
 	Ui::IconButton * const _botCommandStart = nullptr;

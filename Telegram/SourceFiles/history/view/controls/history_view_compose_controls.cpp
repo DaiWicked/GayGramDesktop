@@ -71,10 +71,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "ui/click_handler.h"
 #include "ui/color_int_conversion.h"
-#include "ui/image/image_prepare.h"
-#include "ui/layers/layer_widget.h"
 #include "ui/painter.h"
-#include "window/themes/window_theme.h"
 #include "ui/power_saving.h"
 #include "history/history.h"
 #include "history/history_item.h"
@@ -153,7 +150,6 @@ namespace HistoryView {
 namespace {
 
 constexpr auto kSaveDraftTimeout = crl::time(1000);
-constexpr auto kGlassCacheRefreshDelay = crl::time(400);
 constexpr auto kSaveDraftAnywayTimeout = 5 * crl::time(1000);
 constexpr auto kSaveCloudDraftIdleTimeout = 12 * crl::time(1000);
 constexpr auto kDisplayEditTimeWarningMs = 300 * 1000;
@@ -1326,15 +1322,6 @@ ComposeControls::ComposeControls(
 	if (_st.radius > 0) {
 		_backgroundRect.emplace(_st.radius, _st.bg);
 	}
-	Window::Theme::Background()->updates(
-	) | rpl::on_next([=] {
-		_glassBlurCache = QPixmap();
-		_wrap->update();
-		base::call_delayed(kGlassCacheRefreshDelay, _wrap.get(), [=] {
-			_glassBlurCache = QPixmap();
-			_wrap->update();
-		});
-	}, _wrap->lifetime());
 	rpl::combine(
 		replyingToMessageValue(),
 		replyingToMessageExternalValue()
@@ -5705,66 +5692,7 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 				- _starsReaction->width()
 				- _st.starsSkip);
 		}
-		{
-			auto path = QPainterPath();
-			path.addRoundedRect(QRectF(full), _st.radius, _st.radius);
-			p.save();
-			p.setClipPath(path);
-			const auto bg = Window::Theme::Background();
-			if (bg) {
-				const auto paperId = bg->paper().id();
-				const auto radius = Ui::GlassBlurRadius();
-				const auto ratio = style::DevicePixelRatio();
-				const auto cacheSize = full.size() * ratio;
-				if (_glassBlurCache.isNull()
-					|| _glassBlurCacheSize != cacheSize
-					|| _glassBlurCacheRadius != radius
-					|| _glassBlurCachePaperId != paperId) {
-					auto paper = bg->createCurrentImage();
-					if (!paper.isNull()) {
-						auto crop = paper.scaled(
-							cacheSize,
-							Qt::IgnoreAspectRatio,
-							Qt::SmoothTransformation);
-						if (!crop.isNull()) {
-							if (radius > 0 && crop.height() > 2) {
-								const auto blurRadius = std::min(
-									std::max(radius / 12, 1),
-									std::max(1, crop.height() / 8));
-								crop = Images::BlurLargeImage(
-									std::move(crop),
-									blurRadius);
-							}
-							auto sum = 0;
-							auto count = 0;
-							for (auto y = 0; y < crop.height(); y += 4) {
-								const auto line = reinterpret_cast<const QRgb*>(
-									crop.constScanLine(y));
-								for (auto x = 0; x < crop.width(); x += 4) {
-									sum += qGray(line[x]);
-									++count;
-								}
-							}
-							_glassTintAlpha = (count && (sum / count) > 150)
-								? 56
-								: 112;
-							_glassBlurCache = QPixmap::fromImage(std::move(crop));
-							_glassBlurCache.setDevicePixelRatio(ratio);
-						}
-					}
-					_glassBlurCacheSize = cacheSize;
-					_glassBlurCacheRadius = radius;
-					_glassBlurCachePaperId = paperId;
-				}
-				if (!_glassBlurCache.isNull()) {
-					p.drawPixmap(full, _glassBlurCache, _glassBlurCache.rect());
-				}
-			}
-			auto overlay = st::windowBgOver->c;
-			overlay.setAlpha(_glassTintAlpha);
-			p.fillRect(full, overlay);
-			p.restore();
-		}
+		p.drawRoundedRect(full, _st.radius, _st.radius);
 	} else {
 		p.fillRect(clip, _st.bg);
 	}
