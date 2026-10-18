@@ -31,7 +31,7 @@ namespace {
 
 constexpr auto kGlassDownscale = 2;
 constexpr auto kGlassBevelBase = 14;
-constexpr auto kGlassMaxRadius = 80;
+constexpr auto kGlassMaxRadius = 40;
 constexpr auto kGlassSaturationBoost = 118;
 
 std::atomic<int> g_glassBlurRadius = 24;
@@ -162,6 +162,21 @@ void DrawLiquidGlass(
 		tint.setAlpha(spec.tintAlphaActive);
 		p.fillRect(rect, tint);
 	}
+	{
+		const auto highlightAlpha = (st::windowBg->c.lightness() > 128) ? 46 : 26;
+		auto highlight = QLinearGradient(0, 0, 0, rect.height() / 3.);
+		highlight.setColorAt(0., QColor(255, 255, 255, highlightAlpha));
+		highlight.setColorAt(1., QColor(255, 255, 255, 0));
+		auto inner = QPainterPath();
+		inner.addRoundedRect(
+			QRectF(rect).marginsRemoved(QMarginsF(1., 1., 1., 1.)),
+			radius > 1 ? radius - 1. : radius,
+			radius > 1 ? radius - 1. : radius);
+		p.save();
+		p.setClipPath(inner);
+		p.fillRect(rect, highlight);
+		p.restore();
+	}
 	p.restore();
 	if (radius > 0) {
 		p.save();
@@ -196,16 +211,16 @@ rpl::producer<int> BlurRadiusChanges() {
 namespace LiquidGlass {
 
 GlassSpec Regular() {
-	const auto radius = g_glassBlurRadius.load();
-	if (radius <= 0) {
+	const auto backdropRadius = g_glassBlurRadius.load();
+	if (backdropRadius <= 0) {
 		return GlassSpec{};
 	}
 	auto spec = GlassSpec{};
-	spec.blurRadius = radius;
+	spec.blurRadius = std::max(6, backdropRadius * 2 / 3);
 	const auto bg = st::boxBg->c;
 	spec.tint = QColor(bg.red(), bg.green(), bg.blue());
-	spec.tintAlphaActive = 140;
-	spec.tintAlphaInactive = 128;
+	spec.tintAlphaActive = 120;
+	spec.tintAlphaInactive = 108;
 	return spec;
 }
 
@@ -796,6 +811,21 @@ void LayerStackWidget::setStyleOverrides(
 	_layerSt = layerSt;
 }
 
+void LayerStackWidget::updateGlassBackdrops() {
+	const auto &body = _background->bodyCache();
+	for (const auto &layer : _layers) {
+		const auto box = dynamic_cast<BoxLayerWidget*>(layer.get());
+		if (!box) {
+			continue;
+		}
+		if (body.isNull()) {
+			box->setGlassBackdrop(QImage(), QPoint());
+		} else {
+			box->setGlassBackdrop(body.toImage(), box->pos());
+		}
+	}
+}
+
 void LayerStackWidget::setCacheImages() {
 	auto bodyCache = QPixmap(), mainMenuCache = QPixmap();
 	auto specialLayerCache = QPixmap();
@@ -829,9 +859,7 @@ void LayerStackWidget::setCacheImages() {
 	setAttribute(Qt::WA_OpaquePaintEvent, !bodyCache.isNull());
 	updateLayerBoxes();
 	_background->setCacheImages(std::move(bodyCache), std::move(mainMenuCache), std::move(specialLayerCache), std::move(layerCache));
-	if (const auto box = dynamic_cast<BoxLayerWidget*>(currentLayer())) {
-		box->setGlassBackdrop(_background->bodyCache().toImage(), box->pos());
-	}
+	updateGlassBackdrops();
 }
 
 void LayerStackWidget::closeLayer(not_null<LayerWidget*> layer) {
@@ -1145,6 +1173,7 @@ LayerWidget *LayerStackWidget::pushLayer(
 	_layers.push_back(std::move(layer));
 	const auto raw = _layers.back().get();
 	initChildLayer(raw);
+	updateGlassBackdrops();
 
 	if (_layers.size() > 1) {
 		if (!_background->animating()) {

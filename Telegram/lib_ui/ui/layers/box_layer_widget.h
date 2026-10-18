@@ -163,6 +163,7 @@ private:
 	mutable GlassBackdrop _glassMaterial;
 	mutable QSize _glassMaterialSize;
 	mutable int _glassMaterialRadius = -1;
+	mutable QPoint _glassMaterialOffset;
 
 };
 

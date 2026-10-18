@@ -347,6 +347,7 @@ private:
 	void animationDone();
 
 	void setCacheImages();
+	void updateGlassBackdrops();
 	void updateBoxShown();
 	void clearLayers();
 	void clearSpecialLayer();
