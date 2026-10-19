@@ -60,29 +60,6 @@ rpl::event_stream<int> g_glassBlurRadiusChanges;
 	return std::move(image);
 }
 
-qreal GlassRoundedRectDistance(
-		qreal px,
-		qreal py,
-		qreal halfWidth,
-		qreal halfHeight,
-		qreal radius) {
-	const auto qx = std::abs(px) - halfWidth + radius;
-	const auto qy = std::abs(py) - halfHeight + radius;
-	const auto outside = std::sqrt(
-		std::max(qx, 0.) * std::max(qx, 0.)
-		+ std::max(qy, 0.) * std::max(qy, 0.));
-	return outside + std::min(std::max(qx, qy), 0.) - radius;
-}
-
-qreal GlassRefractionProfile(qreal distance, qreal bevel) {
-	const auto x = std::clamp(1. - distance / bevel, 0., 1.);
-	const auto a = 0.7;
-	const auto b = 2.3;
-	const auto c = 5.2;
-	const auto d = 6.9;
-	return std::clamp(1. - b * std::pow(c * std::exp(1.0), -d * x - a), 0., 1.);
-}
-
 } // namespace
 
 GlassBackdrop::GlassBackdrop(QImage image, GlassSpec spec, QPoint offset)
@@ -245,20 +222,6 @@ GlassSpec Regular() {
 
 GlassSpec Clear() {
 	return GlassSpec{};
-}
-
-GlassSpec WindowsTitleBar() {
-	const auto radius = g_glassBlurRadius.load();
-	if (radius <= 0) {
-		return GlassSpec{};
-	}
-	auto spec = GlassSpec{};
-	spec.blurRadius = radius;
-	spec.refractionRatio = 0.;
-	spec.saturation = 1.05;
-	spec.highlight = 0.2;
-	spec.lightAngle = 45.;
-	return spec;
 }
 
 } // namespace LiquidGlass

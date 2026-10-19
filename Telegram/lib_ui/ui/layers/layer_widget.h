@@ -93,7 +93,6 @@ namespace LiquidGlass {
 
 [[nodiscard]] GlassSpec Regular();
 [[nodiscard]] GlassSpec Clear();
-[[nodiscard]] GlassSpec WindowsTitleBar();
 
 } // namespace LiquidGlass
 
