@@ -1322,6 +1322,22 @@ ComposeControls::ComposeControls(
 	if (_st.radius > 0) {
 		_backgroundRect.emplace(_st.radius, _st.bg);
 	}
+	_field->setTextBgOverride(_glassFieldBg.color());
+	Ui::BlurRadiusChanges(
+	) | rpl::on_next([=] {
+		_glassBackdrop = Ui::GlassBackdrop();
+		_glassBackdropRadius = -1;
+		_wrap->update();
+	}, _wrap->lifetime());
+	if (const auto bg = Window::Theme::Background()) {
+		bg->updates(
+		) | rpl::on_next([=] {
+			_glassBackdrop = Ui::GlassBackdrop();
+			_glassBackdropPaper = 0;
+			_glassPaperSource = QImage();
+			_wrap->update();
+		}, _wrap->lifetime());
+	}
 	rpl::combine(
 		replyingToMessageValue(),
 		replyingToMessageExternalValue()
@@ -2781,7 +2797,7 @@ void ComposeControls::init() {
 
 	_wrap->paintRequest(
 	) | rpl::on_next([=](QRect clip) {
-		auto p = QPainter(_wrap.get());
+		auto p = Painter(_wrap.get());
 		paintBackground(p, _wrap->rect(), clip);
 	}, _wrap->lifetime());
 
@@ -3200,7 +3216,7 @@ void ComposeControls::initField() {
 		}
 		return false;
 	});
-	InitMessageFieldFade(_field, _st.field.textBg);
+	InitMessageFieldFade(_field, _glassFieldBg.color());
 	_field->setEditLinkCallback(
 		DefaultEditLinkCallback(_show, _field, &_st.boxField));
 	_field->setEditLanguageCallback(DefaultEditLanguageCallback(_show));
@@ -4182,7 +4198,7 @@ void SetupRestrictionView(
 		std::shared_ptr<ChatHelpers::Show> show,
 		not_null<PeerData*> peer,
 		rpl::producer<Controls::WriteRestriction> restriction,
-		Fn<void(QPainter &p, QRect clip)> paintBackground) {
+		Fn<void(Painter &p, QRect clip)> paintBackground) {
 	struct State {
 		std::unique_ptr<Ui::FlatLabel> label;
 		std::unique_ptr<Ui::AbstractButton> button;
@@ -4316,7 +4332,7 @@ void SetupRestrictionView(
 	) | rpl::on_next(state->updateGeometries, widget->lifetime());
 
 	widget->paintRequest() | rpl::on_next([=](QRect clip) {
-		auto p = QPainter(widget);
+		auto p = Painter(widget);
 		paintBackground(p, clip);
 	}, widget->lifetime());
 }
@@ -4347,7 +4363,7 @@ void ComposeControls::initWriteRestriction() {
 	_writeRestricted->resize(
 		_writeRestricted->width(),
 		_st.send.inner.height);
-	const auto background = [=](QPainter &p, QRect clip) {
+	const auto background = [=](Painter &p, QRect clip) {
 		paintBackground(p, _writeRestricted->rect(), clip);
 	};
 	SetupRestrictionView(
@@ -5675,7 +5691,7 @@ void ComposeControls::updateAttachBotsMenu() {
 	}, _attachBotsMenu->lifetime());
 }
 
-void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
+void ComposeControls::paintBackground(Painter &p, QRect full, QRect clip) {
 	if (_backgroundRect) {
 		auto hq = PainterHighQualityEnabler(p);
 		p.setBrush(_st.bg);
@@ -5693,9 +5709,77 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 				- _st.starsSkip);
 		}
 		p.drawRoundedRect(full, _st.radius, _st.radius);
-	} else {
+	} else if (!paintGlassBackground(p, full)) {
 		p.fillRect(clip, _st.bg);
 	}
+}
+
+bool ComposeControls::paintGlassBackground(Painter &p, QRect full) {
+	if (full.size() != _wrap->size()) {
+		return false;
+	}
+	const auto spec = Ui::LiquidGlass::Regular();
+	if (spec.isNull() || !ensureGlassBackdrop()) {
+		return false;
+	}
+	Ui::DrawLiquidGlass(p, full, _glassBackdrop, 0, spec);
+	return true;
+}
+
+bool ComposeControls::ensureGlassBackdrop() {
+	const auto bg = Window::Theme::Background();
+	if (!bg) {
+		return false;
+	}
+	const auto ratio = style::DevicePixelRatio();
+	const auto size = _wrap->size();
+	const auto window = _wrap->window();
+	const auto windowSize = window ? window->size() : size;
+	const auto radius = Ui::GlassBlurRadius();
+	const auto paper = bg->paper().id();
+	if (!_glassBackdrop.isNull()
+		&& _glassBackdropSize == size
+		&& _glassBackdropWindow == windowSize
+		&& _glassBackdropRadius == radius
+		&& _glassBackdropPaper == paper) {
+		return true;
+	}
+	_glassBackdropSize = size;
+	_glassBackdropWindow = windowSize;
+	_glassBackdropRadius = radius;
+	_glassBackdropPaper = paper;
+	_glassBackdrop = Ui::GlassBackdrop();
+	if (size.isEmpty() || !window) {
+		return false;
+	}
+	if (_glassPaperSource.isNull() || _glassPaperSource.size() != windowSize * ratio) {
+		const auto source = bg->createCurrentImage();
+		if (source.isNull()) {
+			return false;
+		}
+		_glassPaperSource = source.scaled(
+			windowSize * ratio,
+			Qt::KeepAspectRatioByExpanding,
+			Qt::SmoothTransformation);
+	}
+	if (_glassPaperSource.isNull()) {
+		return false;
+	}
+	const auto offset = _wrap->mapTo(window, QPoint(0, 0)) * ratio;
+	auto image = _glassPaperSource.copy(QRect(offset, size * ratio));
+	if (image.isNull()) {
+		image = _glassPaperSource.scaled(
+			size * ratio,
+			Qt::IgnoreAspectRatio,
+			Qt::SmoothTransformation);
+	}
+	if (image.isNull()) {
+		return false;
+	}
+	_glassBackdrop = Ui::PrepareGlassBackdrop(
+		std::move(image),
+		Ui::LiquidGlass::Regular());
+	return !_glassBackdrop.isNull();
 }
 
 void ComposeControls::escape() {

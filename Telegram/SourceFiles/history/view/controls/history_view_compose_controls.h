@@ -19,7 +19,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/round_rect.h"
 #include "ui/rp_widget.h"
 #include "ui/effects/animations.h"
+#include "ui/layers/layer_widget.h"
+#include "ui/painter.h"
 #include "ui/widgets/fields/input_field.h"
+#include "window/themes/window_theme.h"
 
 class History;
 class DocumentData;
@@ -406,7 +409,9 @@ private:
 		Fn<void(Api::SendOptions)> send);
 	bool updateReplaceMediaButton();
 	void updateOuterGeometry(QRect rect);
-	void paintBackground(QPainter &p, QRect full, QRect clip);
+	void paintBackground(Painter &p, QRect full, QRect clip);
+	[[nodiscard]] bool paintGlassBackground(Painter &p, QRect full);
+	[[nodiscard]] bool ensureGlassBackdrop();
 
 	[[nodiscard]] auto baseSendButtonType() const;
 	[[nodiscard]] auto computeSendButtonType() const;
@@ -549,6 +554,13 @@ private:
 	rpl::event_stream<FullReplyTo> _jumpToItemRequests;
 
 	std::optional<Ui::RoundRect> _backgroundRect;
+	style::internal::OwnedColor _glassFieldBg{ QColor(Qt::transparent) };
+	Ui::GlassBackdrop _glassBackdrop;
+	QSize _glassBackdropSize;
+	QSize _glassBackdropWindow;
+	int _glassBackdropRadius = -1;
+	uint64 _glassBackdropPaper = 0;
+	QImage _glassPaperSource;
 
 	const std::shared_ptr<Ui::SendButton> _send;
 	rpl::event_stream<bool> _sendLockBadge;

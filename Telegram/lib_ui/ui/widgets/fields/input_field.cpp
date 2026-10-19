@@ -1924,9 +1924,10 @@ InputField::InputField(
 		}
 	}
 
-	if (_st.textBg->c.alphaF() >= 1. && !_st.borderRadius) {
-		setAttribute(Qt::WA_OpaquePaintEvent);
-	}
+	const auto &textBg = _textBgOverride ? *_textBgOverride : _st.textBg;
+	setAttribute(
+		Qt::WA_OpaquePaintEvent,
+		textBg->c.alphaF() >= 1. && !_st.borderRadius);
 
 	_inner->setFont(_st.style.font->f);
 	_inner->setAlignment(_st.textAlign);
@@ -2669,6 +2670,15 @@ void InputField::setPlaceholderColorOverride(const style::color &color) {
 	update();
 }
 
+void InputField::setTextBgOverride(const style::color &color) {
+	_textBgOverride = color;
+	const auto &bg = _textBgOverride ? *_textBgOverride : _st.textBg;
+	setAttribute(
+		Qt::WA_OpaquePaintEvent,
+		bg->c.alphaF() >= 1. && !_st.borderRadius);
+	update();
+}
+
 void InputField::setDocumentMargin(float64 margin) {
 	_settingDocumentMargin = true;
 	document()->setDocumentMargin(margin);
@@ -2871,7 +2881,11 @@ void InputField::paintRoundSurrounding(
 	auto pen = anim::pen(_st.borderFg, _st.borderFgActive, focusedDegree);
 	pen.setWidthF(border);
 	p.setPen(pen);
-	p.setBrush(anim::brush(_st.textBg, _st.textBgActive, focusedDegree));
+	if (_textBgOverride) {
+		p.setBrush(*_textBgOverride);
+	} else {
+		p.setBrush(anim::brush(_st.textBg, _st.textBgActive, focusedDegree));
+	}
 
 	PainterHighQualityEnabler hq(p);
 	const auto radius = _st.borderRadius - borderHalf;
@@ -2887,8 +2901,9 @@ void InputField::paintFlatSurrounding(
 		QRect clip,
 		float64 errorDegree,
 		float64 focusedDegree) {
-	if (_st.textBg->c.alphaF() > 0.) {
-		p.fillRect(clip, _st.textBg);
+	const auto &bg = _textBgOverride ? *_textBgOverride : _st.textBg;
+	if (bg->c.alphaF() > 0.) {
+		p.fillRect(clip, bg);
 	}
 	if (_st.border) {
 		p.fillRect(0, height() - _st.border, width(), _st.border, _st.borderFg);
