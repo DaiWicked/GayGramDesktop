@@ -1334,7 +1334,7 @@ ComposeControls::ComposeControls(
 		) | rpl::on_next([=] {
 			_glassBackdrop = Ui::GlassBackdrop();
 			_glassBackdropPaper = 0;
-			_glassPaperSource = QImage();
+			_glassPaperSourcePaper = 0;
 			_wrap->update();
 		}, _wrap->lifetime());
 	}
@@ -5718,68 +5718,73 @@ bool ComposeControls::paintGlassBackground(Painter &p, QRect full) {
 	if (full.size() != _wrap->size()) {
 		return false;
 	}
-	const auto spec = Ui::LiquidGlass::Regular();
-	if (spec.isNull() || !ensureGlassBackdrop()) {
+	auto spec = Ui::LiquidGlass::Regular();
+	if (spec.isNull()) {
+		return false;
+	}
+	const auto radius = Ui::GlassBlurRadius();
+	spec.blurRadius = std::clamp(radius / 4, 2, std::max(2, full.height() / 6));
+	spec.tintAlphaActive = _glassTintAlpha;
+	spec.tintAlphaInactive = _glassTintAlpha;
+	if (!ensureGlassBackdrop(spec)) {
 		return false;
 	}
 	Ui::DrawLiquidGlass(p, full, _glassBackdrop, 0, spec);
 	return true;
 }
 
-bool ComposeControls::ensureGlassBackdrop() {
+bool ComposeControls::ensureGlassBackdrop(const Ui::GlassSpec &spec) {
 	const auto bg = Window::Theme::Background();
 	if (!bg) {
 		return false;
 	}
 	const auto ratio = style::DevicePixelRatio();
 	const auto size = _wrap->size();
-	const auto window = _wrap->window();
-	const auto windowSize = window ? window->size() : size;
 	const auto radius = Ui::GlassBlurRadius();
 	const auto paper = bg->paper().id();
 	if (!_glassBackdrop.isNull()
 		&& _glassBackdropSize == size
-		&& _glassBackdropWindow == windowSize
 		&& _glassBackdropRadius == radius
+		&& _glassBackdropBlurRadius == spec.blurRadius
 		&& _glassBackdropPaper == paper) {
 		return true;
 	}
 	_glassBackdropSize = size;
-	_glassBackdropWindow = windowSize;
 	_glassBackdropRadius = radius;
+	_glassBackdropBlurRadius = spec.blurRadius;
 	_glassBackdropPaper = paper;
 	_glassBackdrop = Ui::GlassBackdrop();
-	if (size.isEmpty() || !window) {
+	if (size.isEmpty()) {
 		return false;
 	}
-	if (_glassPaperSource.isNull() || _glassPaperSource.size() != windowSize * ratio) {
-		const auto source = bg->createCurrentImage();
-		if (source.isNull()) {
+	if (_glassPaperSource.isNull() || _glassPaperSourcePaper != paper) {
+		_glassPaperSource = bg->createCurrentImage();
+		_glassPaperSourcePaper = paper;
+		if (_glassPaperSource.isNull()) {
 			return false;
 		}
-		_glassPaperSource = source.scaled(
-			windowSize * ratio,
-			Qt::KeepAspectRatioByExpanding,
-			Qt::SmoothTransformation);
-	}
-	if (_glassPaperSource.isNull()) {
-		return false;
-	}
-	const auto offset = _wrap->mapTo(window, QPoint(0, 0)) * ratio;
-	auto image = _glassPaperSource.copy(QRect(offset, size * ratio));
-	if (image.isNull()) {
-		image = _glassPaperSource.scaled(
-			size * ratio,
-			Qt::IgnoreAspectRatio,
-			Qt::SmoothTransformation);
-	}
-	if (image.isNull()) {
-		return false;
 	}
 	_glassBackdrop = Ui::PrepareGlassBackdrop(
-		std::move(image),
-		Ui::LiquidGlass::Regular());
-	return !_glassBackdrop.isNull();
+		_glassPaperSource.scaled(
+			size * ratio,
+			Qt::IgnoreAspectRatio,
+			Qt::SmoothTransformation),
+		spec);
+	if (_glassBackdrop.isNull()) {
+		return false;
+	}
+	const auto &blurred = _glassBackdrop.image();
+	auto sum = 0;
+	auto count = 0;
+	for (auto y = 0; y < blurred.height(); y += 4) {
+		const auto line = reinterpret_cast<const QRgb*>(blurred.constScanLine(y));
+		for (auto x = 0; x < blurred.width(); x += 4) {
+			sum += qGray(line[x]);
+			++count;
+		}
+	}
+	_glassTintAlpha = (count && (sum / count) > 150) ? 56 : 112;
+	return true;
 }
 
 void ComposeControls::escape() {

@@ -411,7 +411,7 @@ private:
 	void updateOuterGeometry(QRect rect);
 	void paintBackground(Painter &p, QRect full, QRect clip);
 	[[nodiscard]] bool paintGlassBackground(Painter &p, QRect full);
-	[[nodiscard]] bool ensureGlassBackdrop();
+	[[nodiscard]] bool ensureGlassBackdrop(const Ui::GlassSpec &spec);
 
 	[[nodiscard]] auto baseSendButtonType() const;
 	[[nodiscard]] auto computeSendButtonType() const;
@@ -557,9 +557,11 @@ private:
 	style::internal::OwnedColor _glassFieldBg{ QColor(Qt::transparent) };
 	Ui::GlassBackdrop _glassBackdrop;
 	QSize _glassBackdropSize;
-	QSize _glassBackdropWindow;
 	int _glassBackdropRadius = -1;
+	int _glassBackdropBlurRadius = -1;
+	int _glassTintAlpha = 112;
 	uint64 _glassBackdropPaper = 0;
+	uint64 _glassPaperSourcePaper = 0;
 	QImage _glassPaperSource;
 
 	const std::shared_ptr<Ui::SendButton> _send;
