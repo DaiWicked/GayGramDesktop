@@ -10,6 +10,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "boxes/peers/edit_peer_color_box.h"
 #include "boxes/premium_preview_box.h"
+#include "core/application.h"
+#include "core/core_settings.h"
 #include "lang/lang_keys.h"
 #include "mainwidget.h"
 #include "window/themes/window_theme.h"
@@ -218,6 +220,10 @@ BackgroundPreviewBox::BackgroundPreviewBox(
 , _appNightMode(Window::Theme::IsNightModeValue())
 , _boxDarkMode(_appNightMode.current())
 , _dimmingIntensity(std::clamp(_paper.patternIntensity(), 0, 100))
+, _blurIntensity(std::clamp(
+	Core::App().settings().readPref<int>("gaygramWallpaperBlur", 50),
+	0,
+	100))
 , _dimmed(_forPeer
 	&& (_paper.document() || _paper.localThumbnail())
 	&& !_paper.isPattern()) {
@@ -551,19 +557,68 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 		[=] { return _serviceBg.value_or(QColor(255, 255, 255, 0)); });
 	_blur->show();
 
+	if (!_blurSlider) {
+		_blurSlider.create(this, st::defaultContinuousSlider);
+		_blurSlider->setAlwaysDisplayMarker(true);
+		const auto blurHandle = [=](float64 value) {
+			if (!std::isfinite(value)) {
+				return;
+			}
+			const auto intensity = std::clamp(
+				int(base::SafeRound(value * 100)),
+				0,
+				100);
+			if (_blurIntensity == intensity) {
+				return;
+			}
+			_blurIntensity = intensity;
+			Core::App().settings().writePref<int>(
+				"gaygramWallpaperBlur",
+				intensity);
+			_scaled = _blurred = QPixmap();
+			setScaledFromThumb();
+			update();
+		};
+		_blurSlider->setChangeProgressCallback(blurHandle);
+		_blurSlider->setChangeFinishedCallback(blurHandle);
+	}
+	_blurSlider->setValue(_blurIntensity / 100.);
+	_blurSlider->setDisabled(
+		!_blur->checked() || (_paper.document() && _full.isNull()));
+	_blurSlider->show();
+
 	rpl::combine(
 		sizeValue(),
 		_blur->sizeValue(),
+		_blurSlider->sizeValue(),
 		_dimmingHeight.value()
-	) | rpl::on_next([=](QSize outer, QSize inner, int dimming) {
+	) | rpl::on_next([=](
+			QSize outer,
+			QSize checkSize,
+			QSize sliderSize,
+			int dimming) {
 		const auto bottom = st::historyPaddingBottom;
+		const auto sliderWidth = st::boxWideWidth
+			- st::boxPadding.left()
+			- st::boxPadding.right();
+		const auto sliderHeight = sliderSize.height();
+		const auto sliderY = outer.height()
+			- dimming
+			- bottom
+			- sliderHeight;
+		_blurSlider->resize(sliderWidth, sliderHeight);
+		_blurSlider->move((outer.width() - sliderWidth) / 2, sliderY);
 		_blur->move(
-			(outer.width() - inner.width()) / 2,
-			outer.height() - dimming - bottom - inner.height());
+			(outer.width() - checkSize.width()) / 2,
+			sliderY - checkSize.height() - st::defaultVerticalListSkip);
 	}, _blur->lifetime());
 
 	_blur->checkedChanges(
 	) | rpl::on_next([=](bool checked) {
+		if (_blurSlider) {
+			_blurSlider->setDisabled(
+				!checked || (_paper.document() && _full.isNull()));
+		}
 		checkBlurAnimationStart();
 		update();
 	}, _blur->lifetime());
@@ -573,6 +628,7 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 	if (_forBothOverlay) {
 		_forBothOverlay->raise();
 	}
+	_blurSlider->raise();
 }
 
 void BackgroundPreviewBox::apply() {
@@ -1017,7 +1073,7 @@ void BackgroundPreviewBox::setScaledFromThumb() {
 	auto blurred = (_paper.document() || _paper.isPattern())
 		? QImage()
 		: PrepareScaledNonPattern(
-			Ui::PrepareBlurredBackground(thumbnail->original()),
+			Ui::PrepareBlurredBackground(thumbnail->original(), _blurIntensity),
 			Images::Option(0));
 	setScaledFromImage(std::move(scaled), std::move(blurred));
 }
@@ -1122,7 +1178,7 @@ void BackgroundPreviewBox::checkLoadedDocument() {
 				patternOpacity);
 			auto blurred = !isPattern
 				? PrepareScaledNonPattern(
-					Ui::PrepareBlurredBackground(image),
+					Ui::PrepareBlurredBackground(image, _blurIntensity),
 					Images::Option(0))
 				: QImage();
 			crl::on_main(std::move(guard), [
