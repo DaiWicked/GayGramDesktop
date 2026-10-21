@@ -561,7 +561,7 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 		_blurSlider.create(this, st::defaultContinuousSlider);
 		_blurSlider->setAlwaysDisplayMarker(true);
 		const auto blurHandle = [=](float64 value) {
-			if (!std::isfinite(value)) {
+			if (!std::isfinite(value) || !_blur->checked()) {
 				return;
 			}
 			const auto intensity = std::clamp(
@@ -575,16 +575,18 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 			Core::App().settings().writePref<int>(
 				"gaygramWallpaperBlur",
 				intensity);
-			_scaled = _blurred = QPixmap();
-			setScaledFromThumb();
-			update();
+			rebuildBlurred();
 		};
 		_blurSlider->setChangeProgressCallback(blurHandle);
 		_blurSlider->setChangeFinishedCallback(blurHandle);
 	}
 	_blurSlider->setValue(_blurIntensity / 100.);
-	_blurSlider->setDisabled(
-		!_blur->checked() || (_paper.document() && _full.isNull()));
+	const auto setBlurSliderActive = [=](bool active) {
+		_blurSlider->setDisabled(!active);
+		static_cast<QWidget*>(_blurSlider.data())->setDisabled(!active);
+	};
+	setBlurSliderActive(
+		_blur->checked() && !(_paper.document() && _full.isNull()));
 	_blurSlider->show();
 
 	rpl::combine(
@@ -615,6 +617,8 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 	) | rpl::on_next([=](bool checked) {
 		if (_blurSlider) {
 			_blurSlider->setDisabled(
+				!checked || (_paper.document() && _full.isNull()));
+			static_cast<QWidget*>(_blurSlider.data())->setDisabled(
 				!checked || (_paper.document() && _full.isNull()));
 		}
 		checkBlurAnimationStart();
@@ -1067,8 +1071,8 @@ void BackgroundPreviewBox::setScaledFromThumb() {
 		_paper.backgroundColors(),
 		_paper.gradientRotation(),
 		_paper.patternOpacity(),
-		_paper.document() ? Images::Option::Blur : Images::Option());
-	auto blurred = (_paper.document() || _paper.isPattern())
+		Images::Option(0));
+	auto blurred = _paper.isPattern()
 		? QImage()
 		: PrepareScaledNonPattern(
 			Ui::PrepareBlurredBackground(thumbnail->original(), _blurIntensity),
@@ -1104,6 +1108,28 @@ void BackgroundPreviewBox::checkBlurAnimationStart() {
 	}
 	_paper = _paper.withBlurred(_blur->checked());
 	startFadeInFrom(_paper.isBlurred() ? _scaled : _blurred);
+}
+
+void BackgroundPreviewBox::rebuildBlurred() {
+	if (_paper.isPattern()) {
+		_blurred = QPixmap();
+		return;
+	}
+	auto source = QImage();
+	if (!_full.isNull()) {
+		source = _full;
+	} else if (const auto local = _paper.localThumbnail()) {
+		source = local->original();
+	} else if (const auto thumbnail = _media ? _media->thumbnail() : nullptr) {
+		source = thumbnail->original();
+	}
+	if (source.isNull()) {
+		return;
+	}
+	_blurred = Ui::PixmapFromImage(PrepareScaledNonPattern(
+		Ui::PrepareBlurredBackground(std::move(source), _blurIntensity),
+		Images::Option(0)));
+	update();
 }
 
 void BackgroundPreviewBox::updateServiceBg(const std::vector<QColor> &bg) {
@@ -1166,6 +1192,7 @@ void BackgroundPreviewBox::checkLoadedDocument() {
 			background = _paper.backgroundColors(),
 			gradientRotation = _paper.gradientRotation(),
 			patternOpacity = _paper.patternOpacity(),
+			blurIntensity = _blurIntensity,
 			guard = _generating.make_guard()
 		]() mutable {
 			auto scaled = PrepareScaledFromFull(
@@ -1176,7 +1203,7 @@ void BackgroundPreviewBox::checkLoadedDocument() {
 				patternOpacity);
 			auto blurred = !isPattern
 				? PrepareScaledNonPattern(
-					Ui::PrepareBlurredBackground(image, _blurIntensity),
+					Ui::PrepareBlurredBackground(image, blurIntensity),
 					Images::Option(0))
 				: QImage();
 			crl::on_main(std::move(guard), [

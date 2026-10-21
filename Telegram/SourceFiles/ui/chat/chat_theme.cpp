@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/style/style_palette_colorizer.h"
 
 #include <crl/crl_async.h>
+#include <cmath>
 #include <QtGui/QGuiApplication>
 
 namespace Ui {
@@ -1194,16 +1195,13 @@ QImage InvertPatternImage(QImage pattern) {
 
 QImage PrepareBlurredBackground(QImage image, int strength) {
 	constexpr auto kSize = 900;
-	constexpr auto kMaxRadius = 15;
-	constexpr auto kDefaultRadius = 10;
+	constexpr auto kMaxRadius = 8;
 	strength = std::clamp(strength, 0, 100);
 	if (strength <= 0) {
 		return image;
 	}
-	const auto radius = (strength <= 50)
-		? std::max(1, kDefaultRadius * strength / 50)
-		: kDefaultRadius
-			+ (kMaxRadius - kDefaultRadius) * (strength - 50) / 50;
+	const auto radius = std::max(1, int(base::SafeRound(
+		kMaxRadius * std::pow(strength / 100., 0.7))));
 	if (image.width() > kSize || image.height() > kSize) {
 		image = image.scaled(
 			kSize,

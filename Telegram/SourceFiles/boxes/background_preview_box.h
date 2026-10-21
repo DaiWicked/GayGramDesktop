@@ -88,6 +88,7 @@ private:
 	int textsTop() const;
 	void startFadeInFrom(QPixmap previous);
 	void checkBlurAnimationStart();
+	void rebuildBlurred();
 
 	[[nodiscard]] const style::Box &overridenStyle(bool dark);
 	void paletteReady();
