@@ -418,6 +418,7 @@ private:
 	bool _postponeProcessSearchFocusChange = false;
 
 	base::Timer _searchTimer;
+	base::Timer _auroraTimer;
 
 	QString _topicSearchQuery;
 	TimeId _topicSearchOffsetDate = 0;

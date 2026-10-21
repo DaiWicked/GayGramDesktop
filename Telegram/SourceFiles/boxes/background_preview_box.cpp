@@ -590,23 +590,21 @@ void BackgroundPreviewBox::recreateBlurCheckbox() {
 	rpl::combine(
 		sizeValue(),
 		_blur->sizeValue(),
-		_blurSlider->sizeValue(),
 		_dimmingHeight.value()
 	) | rpl::on_next([=](
 			QSize outer,
 			QSize checkSize,
-			QSize sliderSize,
 			int dimming) {
 		const auto bottom = st::historyPaddingBottom;
-		const auto sliderWidth = st::boxWideWidth
-			- st::boxPadding.left()
-			- st::boxPadding.right();
-		const auto sliderHeight = sliderSize.height();
+		const auto sliderHeight = st::defaultContinuousSlider.seekSize.height();
+		const auto sliderWidth = outer.width()
+			- st::localStorageLimitMargin.left()
+			- st::localStorageLimitMargin.right();
 		const auto sliderY = outer.height()
 			- dimming
 			- bottom
 			- sliderHeight;
-		_blurSlider->resize(sliderWidth, sliderHeight);
+		_blurSlider->resize(std::max(sliderWidth, 1), sliderHeight);
 		_blurSlider->move((outer.width() - sliderWidth) / 2, sliderY);
 		_blur->move(
 			(outer.width() - checkSize.width()) / 2,

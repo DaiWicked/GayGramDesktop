@@ -120,6 +120,21 @@ namespace {
 constexpr auto kSearchPerPage = 50;
 constexpr auto kStoriesExpandDuration = crl::time(200);
 constexpr auto kSearchRequestDelay = crl::time(900);
+constexpr auto kAuroraCycle = crl::time(5 * 60 * 1000);
+constexpr auto kAuroraTick = crl::time(100);
+constexpr auto kAuroraSaturationMin = 0.22;
+
+[[nodiscard]] QColor AuroraShift(const style::color &base) {
+	auto result = base->c;
+	const auto hue = std::fmod(
+		float64(crl::now() % kAuroraCycle) / kAuroraCycle,
+		1.);
+	result.setHsvF(
+		hue,
+		std::max(result.saturationF(), kAuroraSaturationMin),
+		result.valueF());
+	return result;
+}
 
 enum class IdSearchType {
 	None,
@@ -491,6 +506,7 @@ Widget::Widget(
 		_storiesContents.events() | rpl::flatten_latest())
 	: nullptr)
 , _searchTimer([=] { search(); })
+, _auroraTimer([=] { update(); })
 , _peerSearch(&controller->session(), Api::PeerSearch::Type::WithSponsored)
 , _singleMessageSearch(&controller->session()) {
 	const auto makeChildListShown = [](PeerId peerId, float64 shown) {
@@ -527,6 +543,7 @@ Widget::Widget(
 	}, _innerList->lifetime());
 	_scrollToTop->raise();
 	_lockUnlock->toggle(false, anim::type::instant);
+	_auroraTimer.callEach(kAuroraTick);
 
 	_inner->updated(
 	) | rpl::on_next([=] {
@@ -4992,8 +5009,8 @@ void Widget::paintEvent(QPaintEvent *e) {
 		return;
 	}
 	const auto bg = anim::brush(
-		st::dialogsBg,
-		st::dialogsBgOver,
+		AuroraShift(st::dialogsBg),
+		AuroraShift(st::dialogsBgOver),
 		_childListShown.current());
 	auto above = QRect(0, 0, width(), _scroll->y());
 	if (above.intersects(r)) {
