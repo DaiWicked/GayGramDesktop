@@ -120,74 +120,20 @@ namespace {
 constexpr auto kSearchPerPage = 50;
 constexpr auto kStoriesExpandDuration = crl::time(200);
 constexpr auto kSearchRequestDelay = crl::time(900);
-constexpr auto kAuroraScale = 3;
-constexpr auto kAuroraDrift = crl::time(4 * 60 * 1000);
-constexpr auto kAuroraTick = crl::time(150);
+constexpr auto kAuroraCycle = crl::time(5 * 60 * 1000);
+constexpr auto kAuroraTick = crl::time(100);
+constexpr auto kAuroraSaturationMin = 0.22;
 
-[[nodiscard]] QImage RenderAurora(QSize size, crl::time now) {
-	const auto small = QSize(
-		std::max(size.width() / kAuroraScale, 1),
-		std::max(size.height() / kAuroraScale, 1));
-	auto result = QImage(small, QImage::Format_ARGB32_Premultiplied);
-	const auto base = st::dialogsBg->c;
-	result.fill(base);
-
-	const auto light = (base.lightness() > 128);
-	const auto phase = (now % kAuroraDrift) / float64(kAuroraDrift);
-	const auto angle = phase * 2. * M_PI;
-	const auto width = float64(small.width());
-	const auto height = float64(small.height());
-	const auto radius = std::max(width, height) * 0.62;
-
-	auto p = QPainter(&result);
-	p.setRenderHint(QPainter::Antialiasing);
-	p.setPen(Qt::NoPen);
-	for (auto i = 0; i != 3; ++i) {
-		const auto hueOffset = i * 0.16;
-		const auto shift = angle + hueOffset * 2. * M_PI;
-		const auto center = QPointF(
-			width * (0.30 + i * 0.20 + 0.18 * std::cos(shift)),
-			height * (0.26 + i * 0.16 + 0.22 * std::sin(shift * 1.37)));
-		const auto color = QColor::fromHsvF(
-			std::fmod(phase + hueOffset, 1.),
-			light ? 0.34 : 0.46,
-			light ? 1. : 0.72);
-		const auto alpha = light ? (118 - i * 10) : (136 - i * 8);
-		auto gradient = QRadialGradient(center, radius);
-		gradient.setColorAt(0., QColor(
-			color.red(),
-			color.green(),
-			color.blue(),
-			alpha));
-		gradient.setColorAt(0.55, QColor(
-			color.red(),
-			color.green(),
-			color.blue(),
-			alpha / 2));
-		gradient.setColorAt(1., QColor(
-			color.red(),
-			color.green(),
-			color.blue(),
-			0));
-		p.setBrush(gradient);
-		p.drawEllipse(center, radius, radius);
-	}
-	p.end();
+[[nodiscard]] QColor AuroraShift(const style::color &base) {
+	auto result = base->c;
+	const auto hue = std::fmod(
+		float64(crl::now() % kAuroraCycle) / kAuroraCycle,
+		1.);
+	result.setHsvF(
+		hue,
+		std::max(result.saturationF(), kAuroraSaturationMin),
+		result.valueF());
 	return result;
-}
-
-void PaintAurora(QPainter &p, QSize size) {
-	static auto cache = QImage();
-	static auto cacheSize = QSize();
-	static auto cacheStamp = crl::time(-1);
-	const auto stamp = crl::now() / kAuroraTick * kAuroraTick;
-	if (cache.isNull() || cacheSize != size || cacheStamp != stamp) {
-		cacheSize = size;
-		cacheStamp = stamp;
-		cache = RenderAurora(size, stamp);
-	}
-	p.setRenderHint(QPainter::SmoothPixmapTransform);
-	p.drawImage(QRect(QPoint(), size), cache);
 }
 
 enum class IdSearchType {
@@ -560,12 +506,7 @@ Widget::Widget(
 		_storiesContents.events() | rpl::flatten_latest())
 	: nullptr)
 , _searchTimer([=] { search(); })
-, _auroraTimer([=] {
-	update();
-	if (_inner) {
-		_inner->update();
-	}
-})
+, _auroraTimer([=] { update(); })
 , _peerSearch(&controller->session(), Api::PeerSearch::Type::WithSponsored)
 , _singleMessageSearch(&controller->session()) {
 	const auto makeChildListShown = [](PeerId peerId, float64 shown) {
@@ -5067,8 +5008,14 @@ void Widget::paintEvent(QPaintEvent *e) {
 		_showAnimation->paintContents(p);
 		return;
 	}
-	PaintAurora(p, size());
+	const auto bg = anim::brush(
+		AuroraShift(st::dialogsBg),
+		AuroraShift(st::dialogsBgOver),
+		_childListShown.current());
 	auto above = QRect(0, 0, width(), _scroll->y());
+	if (above.intersects(r)) {
+		p.fillRect(above.intersected(r), bg);
+	}
 
 	auto belowTop = _scroll->y() + _scroll->height();
 	if (!_widthAnimationCache.isNull()) {
@@ -5082,12 +5029,19 @@ void Widget::paintEvent(QPaintEvent *e) {
 		const auto top = _searchControls->y()
 			+ _searchControls->height()
 			+ suggestionsSkip;
+		const auto aboveBottom = above.y() + above.height();
+		if (top > aboveBottom) {
+			p.fillRect(0, aboveBottom, width(), top - aboveBottom, bg);
+		}
 		p.drawPixmapLeft(0, top, width(), _widthAnimationCache);
 		belowTop = top
 			+ (_widthAnimationCache.height() / style::DevicePixelRatio());
 	}
 
 	auto below = QRect(0, belowTop, width(), height() - belowTop);
+	if (below.intersects(r)) {
+		p.fillRect(below.intersected(r), bg);
+	}
 }
 
 void Widget::scrollToEntry(const RowDescriptor &entry) {

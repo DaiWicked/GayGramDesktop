@@ -119,10 +119,6 @@ constexpr auto kStartDragToFilterThresholdY = 75;
 constexpr auto kQueryPreviewLimit = 32;
 constexpr auto kPreviewPostsLimit = 3;
 
-[[nodiscard]] std::optional<QBrush> AuroraEnabled() {
-	return QBrush(Qt::NoBrush);
-}
-
 [[nodiscard]] uint64 RowsCacheKey(Entry *entry) {
 	return uint64(reinterpret_cast<quintptr>(entry));
 }
@@ -2037,9 +2033,6 @@ void InnerWidget::paintPeerSearchResult(
 }
 
 QBrush InnerWidget::currentBg() const {
-	if (const auto aurora = AuroraEnabled()) {
-		return *aurora;
-	}
 	return anim::brush(
 		st::dialogsBg,
 		st::dialogsBgOver,
