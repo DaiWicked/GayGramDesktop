@@ -129,7 +129,13 @@ enum class ComposeControlsMode {
 };
 
 [[nodiscard]] int ComposeGlassBlurRadius(int tier, int height);
-[[nodiscard]] int ComposeGlassTintAlpha(const QImage &image);
+
+struct ComposeGlassVeil {
+	QColor color;
+	int alpha = 0;
+};
+
+[[nodiscard]] ComposeGlassVeil ComposeGlassVeilFor(const QImage &image);
 
 extern const ChatHelpers::PauseReason kDefaultPanelsLevel;
 

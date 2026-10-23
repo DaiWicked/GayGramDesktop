@@ -603,6 +603,7 @@ HistoryWidget::HistoryWidget(
 	InitMessageFieldFade(_field, _glassFieldBg.color());
 
 	_field->setTextBgOverride(_glassFieldBg.color());
+	_field->setPlaceholderColorOverride(_glassPlaceholderFg.color());
 	_tabbedSelectorToggle->setBackgroundOverride(&_glassFieldBg.color());
 	_keyboard->setTransparentBackground(true);
 	_richDraftPreview->setTransparentBackground(true);
@@ -11726,10 +11727,14 @@ bool HistoryWidget::paintComposeGlass(Painter &p, QRect rect) {
 	if (image.isNull()) {
 		return false;
 	}
-	const auto alpha = HistoryView::ComposeGlassTintAlpha(image);
-	spec.tint = (alpha == 44) ? QColor(0, 0, 0) : QColor(255, 255, 255);
-	spec.tintAlphaActive = alpha;
-	spec.tintAlphaInactive = alpha;
+	const auto veil = HistoryView::ComposeGlassVeilFor(image);
+	spec.tint = veil.color;
+	spec.tintAlphaActive = veil.alpha;
+	spec.tintAlphaInactive = veil.alpha;
+	const auto placeholder = (veil.color == QColor(0, 0, 0))
+		? QColor(255, 255, 255, 150)
+		: QColor(0, 0, 0, 150);
+	_glassPlaceholderFg.update(placeholder);
 	_glassBackdropSize = rect.size();
 	_glassBackdropTier = tier;
 	_glassBackdropBlur = spec.blurRadius;

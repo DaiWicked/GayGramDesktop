@@ -216,7 +216,7 @@ int ComposeGlassBlurRadius(int tier, int height) {
 	return std::clamp(wanted, 2, std::max(2, height / 4));
 }
 
-int ComposeGlassTintAlpha(const QImage &image) {
+ComposeGlassVeil ComposeGlassVeilFor(const QImage &image) {
 	auto sum = 0;
 	auto count = 0;
 	for (auto y = 0; y < image.height(); y += 4) {
@@ -227,7 +227,14 @@ int ComposeGlassTintAlpha(const QImage &image) {
 			++count;
 		}
 	}
-	return (!count || (sum / count) > 150) ? 70 : 90;
+	const auto average = count ? (sum / count) : 128;
+	const auto lightText = (qGray(st::historyComposeAreaFg->c.rgb()) >= 128);
+	const auto veilDistance = lightText ? average : (255 - average);
+	const auto alpha = std::clamp(
+		110 + (veilDistance * 115) / 255,
+		110,
+		225);
+	return { lightText ? QColor(0, 0, 0) : QColor(255, 255, 255), alpha };
 }
 
 namespace Controls {

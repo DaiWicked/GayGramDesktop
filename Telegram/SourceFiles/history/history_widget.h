@@ -972,6 +972,7 @@ private:
 	QSize _glassBackdropFill;
 	int _glassBackdropFromY = 0;
 	style::internal::OwnedColor _glassFieldBg{ QColor(Qt::transparent) };
+	style::internal::OwnedColor _glassPlaceholderFg{ QColor(0, 0, 0, 150) };
 	std::unique_ptr<Ui::RpWidget> _sendRestriction;
 	using CharactersLimitLabel = HistoryView::Controls::CharactersLimitLabel;
 	base::unique_qptr<CharactersLimitLabel> _charsLimitation;
