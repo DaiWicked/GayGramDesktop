@@ -89,6 +89,10 @@ void SetGlassBlurRadius(int radius);
 [[nodiscard]] int GlassBlurRadius();
 [[nodiscard]] rpl::producer<int> BlurRadiusChanges();
 
+void SetAuroraEnabled(bool enabled);
+[[nodiscard]] bool AuroraEnabled();
+[[nodiscard]] rpl::producer<bool> AuroraEnabledChanges();
+
 namespace LiquidGlass {
 
 [[nodiscard]] GlassSpec Regular();

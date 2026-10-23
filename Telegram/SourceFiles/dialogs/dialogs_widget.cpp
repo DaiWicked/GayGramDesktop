@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/community_pending_requests_box.h"
 #include "boxes/peers/edit_peer_requests_box.h"
 #include "boxes/choose_filter_box.h"
+#include "ui/layers/layer_widget.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/chat_filters_tabs_strip.h"
@@ -125,6 +126,9 @@ constexpr auto kAuroraTick = crl::time(100);
 constexpr auto kAuroraSaturationMin = 0.22;
 
 [[nodiscard]] QColor AuroraShift(const style::color &base) {
+	if (!Ui::AuroraEnabled()) {
+		return base->c;
+	}
 	auto result = base->c;
 	const auto hue = std::fmod(
 		float64(crl::now() % kAuroraCycle) / kAuroraCycle,

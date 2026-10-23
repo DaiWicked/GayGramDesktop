@@ -37,6 +37,9 @@ constexpr auto kGlassSaturationBoost = 118;
 std::atomic<int> g_glassBlurRadius = 24;
 rpl::event_stream<int> g_glassBlurRadiusChanges;
 
+std::atomic<bool> g_auroraEnabled = true;
+rpl::event_stream<bool> g_auroraEnabledChanges;
+
 [[nodiscard]] QImage BoostGlassSaturation(QImage &&image) {
 	if (image.isNull()) {
 		return std::move(image);
@@ -183,6 +186,21 @@ int GlassBlurRadius() {
 
 rpl::producer<int> BlurRadiusChanges() {
 	return g_glassBlurRadiusChanges.events();
+}
+
+void SetAuroraEnabled(bool enabled) {
+	const auto old = g_auroraEnabled.exchange(enabled);
+	if (old != enabled) {
+		g_auroraEnabledChanges.fire_copy(enabled);
+	}
+}
+
+bool AuroraEnabled() {
+	return g_auroraEnabled.load();
+}
+
+rpl::producer<bool> AuroraEnabledChanges() {
+	return g_auroraEnabledChanges.events();
 }
 
 namespace LiquidGlass {

@@ -136,6 +136,32 @@ void BuildOtherThings(SectionBuilder &builder) {
 		},
 	});
 	builder.addButton({
+		.id = u"ayu/gaygramAurora"_q,
+		.title = rpl::single(QString("极光色相循环")),
+		.icon = { &st::menuIconSettings },
+		.onClick = [=] {
+			const auto current = Core::App().settings().readPref<bool>(
+				Core::kGayGramAuroraEnabledKey, true);
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				SingleChoiceBox(box, {
+					.title = rpl::single(QString("极光色相循环")),
+					.options = std::vector<QString>{
+						u"关"_q,
+						u"开（默认）"_q,
+					},
+					.initialSelection = current ? 1 : 0,
+					.callback = [=](int index) {
+						const auto enable = (index == 1);
+						Core::App().settings().writePref<bool>(
+							Core::kGayGramAuroraEnabledKey, enable);
+						Ui::SetAuroraEnabled(enable);
+						controller->showToast(tr::lng_box_done(tr::now));
+					},
+				});
+			}));
+		},
+	});
+	builder.addButton({
 		.id = u"ayu/registerUrlScheme"_q,
 		.title = tr::ayu_RegisterURLScheme(),
 		.icon = { &st::menuIconLink },

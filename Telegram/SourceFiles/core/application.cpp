@@ -568,6 +568,9 @@ void Application::startSettingsAndBackground() {
 	const auto glassRadius = settings().readPref<int>(
 		Core::kGayGramGlassStrengthKey, 24);
 	Ui::SetGlassBlurRadius(glassRadius);
+	const auto auroraEnabled = settings().readPref<bool>(
+		Core::kGayGramAuroraEnabledKey, true);
+	Ui::SetAuroraEnabled(auroraEnabled);
 }
 
 void Application::checkSystemDarkMode() {

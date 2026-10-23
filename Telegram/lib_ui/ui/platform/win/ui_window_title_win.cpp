@@ -6,6 +6,7 @@
 //
 #include "ui/platform/win/ui_window_title_win.h"
 
+#include "ui/layers/layer_widget.h"
 #include "ui/platform/win/ui_window_win.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/shadow.h"
@@ -146,7 +147,9 @@ void TitleWidget::setResizeEnabled(bool enabled) {
 void TitleWidget::paintEvent(QPaintEvent *e) {
 	const auto active = window()->isActiveWindow();
 	const auto fallback = active ? _controls.st()->bgActive : _controls.st()->bg;
-	const auto color = active ? auroraColor(active) : fallback->c;
+	const auto color = (active && AuroraEnabled())
+		? auroraColor(active)
+		: fallback->c;
 	QPainter(this).fillRect(e->rect(), color);
 }
 
