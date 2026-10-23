@@ -314,5 +314,10 @@ bool ReadPaletteValues(
 [[nodiscard]] std::unique_ptr<Ui::ChatTheme> DefaultChatThemeOn(
 	rpl::lifetime &lifetime);
 
+[[nodiscard]] QImage GrabBackgroundSlice(
+	not_null<Ui::ChatTheme*> theme,
+	QSize fill,
+	QRect slice);
+
 } // namespace Theme
 } // namespace Window

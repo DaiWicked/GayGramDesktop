@@ -66,6 +66,8 @@ public:
 
 	rpl::producer<Bot::SendCommandRequest> sendCommandRequests() const;
 
+	void setTransparentBackground(bool transparent);
+
 	~BotKeyboard();
 
 protected:
@@ -100,5 +102,6 @@ private:
 	rpl::event_stream<Bot::SendCommandRequest> _sendCommandRequests;
 
 	const style::BotKeyboardButton *_st = nullptr;
+	bool _transparentBackground = false;
 
 };

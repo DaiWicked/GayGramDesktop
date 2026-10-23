@@ -1712,5 +1712,40 @@ std::unique_ptr<Ui::ChatTheme> DefaultChatThemeOn(rpl::lifetime &lifetime) {
 	return result;
 }
 
+QImage GrabBackgroundSlice(
+		not_null<Ui::ChatTheme*> theme,
+		QSize fill,
+		QRect slice) {
+	if (fill.isEmpty() || slice.isEmpty()) {
+		return QImage();
+	}
+	const auto &background = theme->background();
+	if (background.colorForFill) {
+		return QImage();
+	}
+	const auto &state = theme->backgroundState(fill);
+	const auto &cache = !state.now.pixmap.isNull()
+		? state.now
+		: state.was;
+	if (cache.pixmap.isNull()) {
+		return QImage();
+	}
+	const auto ratio = style::DevicePixelRatio();
+	auto image = cache.pixmap.toImage();
+	if ((cache.pixmap.size() / ratio) != fill) {
+		image = image.scaled(
+			fill * ratio,
+			Qt::IgnoreAspectRatio,
+			Qt::SmoothTransformation);
+	}
+	const auto shift = QPoint(cache.x, cache.y);
+	const auto wanted = QRect(slice.topLeft() - shift, slice.size());
+	return image.copy(QRect(
+		wanted.x() * ratio,
+		wanted.y() * ratio,
+		wanted.width() * ratio,
+		wanted.height() * ratio));
+}
+
 } // namespace Theme
 } // namespace Window

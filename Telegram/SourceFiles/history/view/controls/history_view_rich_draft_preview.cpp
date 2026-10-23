@@ -153,6 +153,13 @@ void RichDraftPreview::setDraft(
 	rebuildPreparedContent(draft, std::move(draftOrigin));
 }
 
+void RichDraftPreview::setTransparentBackground(bool transparent) {
+	if (_transparentBackground != transparent) {
+		_transparentBackground = transparent;
+		update();
+	}
+}
+
 int RichDraftPreview::resizeGetHeight(
 		int width,
 		int minHeight,
@@ -173,7 +180,9 @@ void RichDraftPreview::paint(QRect clip) {
 	Painter p(this);
 	const auto paused = _paused && _paused();
 	p.setInactive(paused);
-	p.fillRect(rect(), st::historyComposeAreaBg);
+	if (!_transparentBackground) {
+		p.fillRect(rect(), st::historyComposeAreaBg);
+	}
 
 	if (_style && (_paletteVersion != _style->paletteVersion())) {
 		_paletteVersion = _style->paletteVersion();

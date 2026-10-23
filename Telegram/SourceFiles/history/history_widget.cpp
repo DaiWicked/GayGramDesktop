@@ -34,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/core_settings.h"
 #include "core/file_utilities.h"
 #include "core/mime_type.h"
+#include "mainwidget.h"
 #include "history/view/history_view_draw_to_reply.h"
 #include "history/view/controls/history_view_rich_draft_preview.h"
 #include "ui/emoji_config.h"
@@ -115,6 +116,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/controls/history_view_characters_limit.h"
 #include "history/view/controls/history_view_compose_ai_button.h"
 #include "history/view/controls/history_view_compose_ai_tooltip.h"
+#include "history/view/controls/history_view_compose_controls.h"
 #include "history/view/controls/history_view_compose_search.h"
 #include "history/view/controls/history_view_forward_panel.h"
 #include "history/view/controls/history_view_draft_options.h"
@@ -598,7 +600,26 @@ HistoryWidget::HistoryWidget(
 		showPremiumToast(document);
 		return false;
 	});
-	InitMessageFieldFade(_field, st::historyComposeField.textBg);
+	InitMessageFieldFade(_field, _glassFieldBg.color());
+
+	_field->setTextBgOverride(_glassFieldBg.color());
+	_tabbedSelectorToggle->setBackgroundOverride(&_glassFieldBg.color());
+	_keyboard->setTransparentBackground(true);
+	_richDraftPreview->setTransparentBackground(true);
+	Ui::BlurRadiusChanges(
+	) | rpl::on_next([=] {
+		_glassBackdrop = Ui::GlassBackdrop();
+		_glassBackdropTier = -1;
+		updateField();
+	}, lifetime());
+	if (const auto bg = Window::Theme::Background()) {
+		bg->updates(
+		) | rpl::on_next([=] {
+			_glassBackdrop = Ui::GlassBackdrop();
+			_glassBackdropTheme = 0;
+			updateField();
+		}, lifetime());
+	}
 
 	setupFastButtonMode();
 	initAiButton();
@@ -11347,7 +11368,10 @@ void HistoryWidget::drawField(Painter &p, const QRect &rect) {
 	}
 	p.setInactive(
 		controller()->isGifPausedAtLeastFor(Window::GifPauseReason::Any));
-	p.fillRect(myrtlrect(0, backy, width(), backh), st::historyReplyBg);
+	const auto back = QRect(0, backy, width(), backh);
+	if (!paintComposeGlass(p, back)) {
+		p.fillRect(myrtlrect(0, backy, width(), backh), st::historyReplyBg);
+	}
 
 	const auto media = (!_previewDrawPreview && drawMsgText)
 		? drawMsgText->media()
@@ -11669,6 +11693,55 @@ void HistoryWidget::paintEvent(QPaintEvent *e) {
 			width(),
 			tr::lng_willbe_history(tr::now));
 	}
+}
+
+bool HistoryWidget::paintComposeGlass(Painter &p, QRect rect) {
+	auto spec = Ui::LiquidGlass::Regular();
+	if (spec.isNull() || rect.isEmpty()) {
+		return false;
+	}
+	const auto theme = controller()->currentChatTheme();
+	const auto content = controller()->content();
+	if (!theme || !content) {
+		return false;
+	}
+	const auto fill = QSize(width(), content->height());
+	const auto fromY = content->backgroundFromY();
+	const auto tier = Ui::GlassBlurRadius();
+	spec.blurRadius = HistoryView::ComposeGlassBlurRadius(tier, rect.height());
+	if (!_glassBackdrop.isNull()
+		&& _glassBackdropSize == rect.size()
+		&& _glassBackdropTier == tier
+		&& _glassBackdropBlur == spec.blurRadius
+		&& _glassBackdropTheme == theme->key().id
+		&& _glassBackdropFill == fill
+		&& _glassBackdropFromY == fromY) {
+		Ui::DrawLiquidGlass(p, rect, _glassBackdrop, 0, spec);
+		return true;
+	}
+	auto image = Window::Theme::GrabBackgroundSlice(
+		theme,
+		fill,
+		rect.translated(0, -fromY));
+	if (image.isNull()) {
+		return false;
+	}
+	const auto alpha = HistoryView::ComposeGlassTintAlpha(image);
+	spec.tint = (alpha == 44) ? QColor(0, 0, 0) : QColor(255, 255, 255);
+	spec.tintAlphaActive = alpha;
+	spec.tintAlphaInactive = alpha;
+	_glassBackdropSize = rect.size();
+	_glassBackdropTier = tier;
+	_glassBackdropBlur = spec.blurRadius;
+	_glassBackdropTheme = theme->key().id;
+	_glassBackdropFill = fill;
+	_glassBackdropFromY = fromY;
+	_glassBackdrop = Ui::PrepareGlassBackdrop(std::move(image), spec);
+	if (_glassBackdrop.isNull()) {
+		return false;
+	}
+	Ui::DrawLiquidGlass(p, rect, _glassBackdrop, 0, spec);
+	return true;
 }
 
 QPoint HistoryWidget::clampMousePosition(QPoint point) {

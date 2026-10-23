@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_report.h"
 #include "window/section_widget.h"
 #include "window/window_session_controller.h"
+#include "ui/layers/layer_widget.h"
 #include "ui/widgets/fields/input_field.h"
 #include "mtproto/sender.h"
 
@@ -654,6 +655,7 @@ private:
 	void sendInlineResult(InlineBots::ResultSelected result);
 
 	void drawField(Painter &p, const QRect &rect);
+	[[nodiscard]] bool paintComposeGlass(Painter &p, QRect rect);
 	void paintEditHeader(
 		Painter &p,
 		const QRect &rect,
@@ -961,6 +963,15 @@ private:
 	object_ptr<Ui::InputField> _field;
 	std::unique_ptr<HistoryView::Controls::RichDraftPreview> _richDraftPreview;
 	base::unique_qptr<Ui::RpWidget> _fieldDisabled;
+
+	Ui::GlassBackdrop _glassBackdrop;
+	QSize _glassBackdropSize;
+	int _glassBackdropTier = -1;
+	int _glassBackdropBlur = -1;
+	uint64 _glassBackdropTheme = 0;
+	QSize _glassBackdropFill;
+	int _glassBackdropFromY = 0;
+	style::internal::OwnedColor _glassFieldBg{ QColor(Qt::transparent) };
 	std::unique_ptr<Ui::RpWidget> _sendRestriction;
 	using CharactersLimitLabel = HistoryView::Controls::CharactersLimitLabel;
 	base::unique_qptr<CharactersLimitLabel> _charsLimitation;

@@ -54,6 +54,7 @@ public:
 	~RichDraftPreview();
 
 	void setDraft(const Data::Draft &draft, Data::FileOrigin draftOrigin);
+	void setTransparentBackground(bool transparent);
 
 	[[nodiscard]] int resizeGetHeight(
 		int width,
@@ -94,6 +95,7 @@ private:
 	int _fullArticleHeight = 0;
 	int _fullContentHeight = 0;
 	bool _clippedBottom = false;
+	bool _transparentBackground = false;
 
 };
 

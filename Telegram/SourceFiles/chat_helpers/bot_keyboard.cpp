@@ -202,7 +202,9 @@ void BotKeyboard::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
 	auto clip = e->rect();
-	p.fillRect(clip, st::historyComposeAreaBg);
+	if (!_transparentBackground) {
+		p.fillRect(clip, st::historyComposeAreaBg);
+	}
 
 	if (_impl) {
 		int x = rtl() ? st::botKbScroll.width : _st->margin;
@@ -451,6 +453,13 @@ void BotKeyboard::updateSelected() {
 auto BotKeyboard::sendCommandRequests() const
 -> rpl::producer<Bot::SendCommandRequest> {
 	return _sendCommandRequests.events();
+}
+
+void BotKeyboard::setTransparentBackground(bool transparent) {
+	if (_transparentBackground != transparent) {
+		_transparentBackground = transparent;
+		update();
+	}
 }
 
 BotKeyboard::~BotKeyboard() = default;

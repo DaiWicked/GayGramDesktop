@@ -128,6 +128,9 @@ enum class ComposeControlsMode {
 	Scheduled,
 };
 
+[[nodiscard]] int ComposeGlassBlurRadius(int tier, int height);
+[[nodiscard]] int ComposeGlassTintAlpha(const QImage &image);
+
 extern const ChatHelpers::PauseReason kDefaultPanelsLevel;
 
 struct ComposeControlsDescriptor {

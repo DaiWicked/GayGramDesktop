@@ -26,6 +26,7 @@ public:
 		const style::icon *iconOverride,
 		const style::color *colorOverride,
 		const style::color *rippleOverride);
+	void setBackgroundOverride(const style::color *bg);
 
 protected:
 	void paintEvent(QPaintEvent *e) override;
@@ -44,6 +45,7 @@ private:
 	const style::icon *_iconOverride = nullptr;
 	const style::color *_colorOverride = nullptr;
 	const style::color *_rippleOverride = nullptr;
+	const style::color *_bgOverride = nullptr;
 
 };
 

@@ -211,6 +211,25 @@ using ForwardPanel = Controls::ForwardPanel;
 
 } // namespace
 
+int ComposeGlassBlurRadius(int tier, int height) {
+	const auto wanted = (tier <= 12) ? 4 : 9;
+	return std::clamp(wanted, 2, std::max(2, height / 4));
+}
+
+int ComposeGlassTintAlpha(const QImage &image) {
+	auto sum = 0;
+	auto count = 0;
+	for (auto y = 0; y < image.height(); y += 4) {
+		const auto line = reinterpret_cast<const QRgb*>(
+			image.constScanLine(y));
+		for (auto x = 0; x < image.width(); x += 4) {
+			sum += qGray(line[x]);
+			++count;
+		}
+	}
+	return (!count || (sum / count) > 150) ? 70 : 90;
+}
+
 namespace Controls {
 const char kOptionMacCmdReplyImmediately[] = "mac-cmd-reply-immediately";
 } // namespace Controls
@@ -5722,9 +5741,12 @@ bool ComposeControls::paintGlassBackground(Painter &p, QRect full) {
 		return false;
 	}
 	const auto radius = Ui::GlassBlurRadius();
-	spec.blurRadius = std::clamp(radius / 4, 2, std::max(2, full.height() / 6));
+	spec.blurRadius = ComposeGlassBlurRadius(radius, full.height());
 	spec.tintAlphaActive = _glassTintAlpha;
 	spec.tintAlphaInactive = _glassTintAlpha;
+	spec.tint = (_glassTintAlpha == 44)
+		? QColor(0, 0, 0)
+		: QColor(255, 255, 255);
 	if (!ensureGlassBackdrop(spec)) {
 		return false;
 	}

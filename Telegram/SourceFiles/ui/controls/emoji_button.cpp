@@ -24,7 +24,11 @@ EmojiButton::EmojiButton(QWidget *parent, const style::EmojiButton &st)
 void EmojiButton::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
 
-	p.fillRect(e->rect(), _st.bg);
+	if (_bgOverride) {
+		p.fillRect(e->rect(), *_bgOverride);
+	} else {
+		p.fillRect(e->rect(), _st.bg);
+	}
 	const auto &st = _st.inner;
 	paintRipple(p, st.rippleAreaPosition.x(), st.rippleAreaPosition.y(), _rippleOverride ? &(*_rippleOverride)->c : nullptr);
 
@@ -100,6 +104,13 @@ void EmojiButton::setColorOverrides(const style::icon *iconOverride, const style
 	_colorOverride = colorOverride;
 	_rippleOverride = rippleOverride;
 	update();
+}
+
+void EmojiButton::setBackgroundOverride(const style::color *bg) {
+	if (_bgOverride != bg) {
+		_bgOverride = bg;
+		update();
+	}
 }
 
 void EmojiButton::onStateChanged(State was, StateChangeSource source) {
