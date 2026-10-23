@@ -9,6 +9,7 @@
 #include "ui/platform/ui_platform_window_title.h"
 #include "ui/rp_widget.h"
 #include "base/object_ptr.h"
+#include "base/timer.h"
 
 #include <QtCore/QRect>
 #include <QtCore/QPoint>
@@ -60,10 +61,12 @@ private:
 	void refreshGeometryWithWidth(int width);
 	void setAdditionalPadding(int padding);
 	void updateShadowGeometry();
+	[[nodiscard]] QColor auroraColor(bool active) const;
 
 	std::unique_ptr<PaddingHelper> _paddingHelper;
 	TitleControls _controls;
 	object_ptr<Ui::PlainShadow> _shadow;
+	base::Timer _auroraTimer;
 
 };
 

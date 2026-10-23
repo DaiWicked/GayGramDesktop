@@ -77,6 +77,14 @@ TitleWidget::TitleWidget(not_null<RpWidget*> parent)
 	) | rpl::on_next([=](int width) {
 		refreshGeometryWithWidth(width);
 	}, lifetime());
+
+	_auroraTimer.setCallback([=] {
+		if (isHidden() || !window() || !window()->isVisible()) {
+			return;
+		}
+		update();
+	});
+	_auroraTimer.callEach(crl::time(500));
 }
 
 void TitleWidget::initInWindow(not_null<RpWindow*> window) {
@@ -137,9 +145,24 @@ void TitleWidget::setResizeEnabled(bool enabled) {
 
 void TitleWidget::paintEvent(QPaintEvent *e) {
 	const auto active = window()->isActiveWindow();
-	QPainter(this).fillRect(
-		e->rect(),
-		active ? _controls.st()->bgActive : _controls.st()->bg);
+	const auto fallback = active ? _controls.st()->bgActive : _controls.st()->bg;
+	const auto color = active ? auroraColor(active) : fallback->c;
+	QPainter(this).fillRect(e->rect(), color);
+}
+
+QColor TitleWidget::auroraColor(bool active) const {
+	constexpr auto kCycle = crl::time(5 * 60 * 1000);
+	const auto base = active ? _controls.st()->bgActive->c : _controls.st()->bg->c;
+	auto h = 0., s = 0., v = 0.;
+	base.getHsvF(&h, &s, &v);
+	const auto phase = float64(crl::now() % kCycle) / kCycle;
+	const auto shifted = (h < 0.)
+		? phase
+		: std::fmod(h + phase, 1.);
+	return QColor::fromHsvF(
+		shifted,
+		std::max(s, 0.22),
+		v);
 }
 
 void TitleWidget::resizeEvent(QResizeEvent *e) {
